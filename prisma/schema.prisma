@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Contact {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String?
+  phone     String?
+  company   String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  deals      Deal[]
+  tasks      Task[]
+  activities Activity[]
+}
+
+model Deal {
+  id        Int      @id @default(autoincrement())
+  title     String
+  value     Float?
+  stage     String   @default("ליד")
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  contactId  Int
+  contact    Contact    @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  tasks      Task[]
+  activities Activity[]
+}
+
+model Task {
+  id        Int       @id @default(autoincrement())
+  title     String
+  dueDate   DateTime?
+  completed Boolean   @default(false)
+  createdAt DateTime  @default(now())
+
+  contactId Int?
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  dealId Int?
+  deal   Deal? @relation(fields: [dealId], references: [id], onDelete: SetNull)
+}
+
+model Activity {
+  id        Int      @id @default(autoincrement())
+  type      String
+  note      String
+  createdAt DateTime @default(now())
+
+  contactId Int?
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  dealId Int?
+  deal   Deal? @relation(fields: [dealId], references: [id], onDelete: SetNull)
+}
