@@ -4,7 +4,14 @@ import { prisma } from "@/lib/db";
 export async function GET() {
   const contacts = await prisma.contact.findMany({
     orderBy: { createdAt: "desc" },
-    include: { _count: { select: { deals: true, tasks: true } } },
+    include: {
+      _count: { select: { deals: true, tasks: true } },
+      activities: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: { note: true, createdAt: true, type: true },
+      },
+    },
   });
   return NextResponse.json(contacts);
 }

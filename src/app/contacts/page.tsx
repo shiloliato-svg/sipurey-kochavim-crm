@@ -39,6 +39,7 @@ type Contact = {
   status: string;
   createdAt: string;
   _count?: { deals: number; tasks: number };
+  activities?: { note: string; createdAt: string; type: string }[];
 };
 
 const STATUSES = [
@@ -193,7 +194,7 @@ export default function ContactsPage() {
               <TableRow>
                 <TableHead className="text-right">שם</TableHead>
                 <TableHead className="text-right">טלפון</TableHead>
-                <TableHead className="text-right">חברה</TableHead>
+                <TableHead className="text-right">הודעה אחרונה</TableHead>
                 <TableHead className="text-right">סטטוס</TableHead>
                 <TableHead className="text-right">עסקאות</TableHead>
                 <TableHead></TableHead>
@@ -204,7 +205,16 @@ export default function ContactsPage() {
                 <TableRow key={c.id}>
                   <TableCell className="font-medium">{c.name}</TableCell>
                   <TableCell>{c.phone || "—"}</TableCell>
-                  <TableCell>{c.company || "—"}</TableCell>
+                  <TableCell className="max-w-xs">
+                    {c.activities?.[0] ? (
+                      <div>
+                        <p className="text-sm truncate text-gray-700">{c.activities[0].note}</p>
+                        <p className="text-xs text-gray-400">
+                          {new Date(c.activities[0].createdAt).toLocaleDateString("he-IL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                      </div>
+                    ) : <span className="text-gray-300">—</span>}
+                  </TableCell>
                   <TableCell>
                     <Select value={c.status ?? "חדש"} onValueChange={(v) => v && updateStatus(c.id, v)}>
                       <SelectTrigger className={`w-32 text-xs h-7 ${statusStyle(c.status)}`}>
