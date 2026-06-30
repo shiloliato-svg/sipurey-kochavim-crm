@@ -56,5 +56,15 @@ export async function POST(req: NextRequest) {
     },
   });
 
+  // Forward to the bot so it continues to handle the conversation
+  const botUrl = process.env.BOT_WEBHOOK_URL;
+  if (botUrl) {
+    fetch(botUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }).catch(() => {});
+  }
+
   return NextResponse.json({ ok: true });
 }
