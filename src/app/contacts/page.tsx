@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
 
 type Contact = {
   id: number;
@@ -37,8 +38,11 @@ type Contact = {
   company?: string;
   notes?: string;
   status: string;
+  whatsappSummary?: string;
+  bookCount?: string;
+  leadState?: string;
   createdAt: string;
-  _count?: { deals: number; tasks: number };
+  _count?: { deals: number; tasks: number; activities: number };
   activities?: { note: string; createdAt: string; type: string }[];
 };
 
@@ -57,7 +61,7 @@ const statusStyle = (s: string) =>
 const statusLabel = (s: string) =>
   STATUSES.find((x) => x.value === s)?.label ?? s;
 
-const empty = { name: "", email: "", phone: "", company: "", notes: "", status: "חדש" };
+const empty = { name: "", email: "", phone: "", company: "", notes: "", status: "חדש", whatsappSummary: "" };
 
 export default function ContactsPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -66,6 +70,8 @@ export default function ContactsPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Contact | null>(null);
   const [form, setForm] = useState(empty);
+  const [summarizing, setSummarizing] = useState<number | null>(null);
+  const [analyzingAll, setAnalyzingAll] = useState(false);
 
   const load = async () => {
     const res = await fetch("/api/contacts");
@@ -85,7 +91,7 @@ export default function ContactsPage() {
   const openNew = () => { setEditing(null); setForm(empty); setOpen(true); };
   const openEdit = (c: Contact) => {
     setEditing(c);
-    setForm({ name: c.name, email: c.email ?? "", phone: c.phone ?? "", company: c.company ?? "", notes: c.notes ?? "", status: c.status ?? "חדש" });
+    setForm({ name: c.name, email: c.email ?? "", phone: c.phone ?? "", company: c.company ?? "", notes: c.notes ?? "", status: c.status ?? "חדש", whatsappSummary: c.whatsappSummary ?? "" });
     setOpen(true);
   };
 
@@ -111,10 +117,61 @@ export default function ContactsPage() {
     load();
   };
 
+  const analyzeAll = async () => {
+    setAnalyzingAll(true);
+    await fetch("/api/contacts/analyze-all", { method: "POST" });
+    await load();
+    setAnalyzingAll(false);
+  };
+
+  const summarize = async (id: number) => {
+    setSummarizing(id);
+    const res = await fetch(`/api/contacts/${id}/summarize`, { method: "POST" });
+    if (!res.ok) {
+      const err = await res.json();
+      alert(err.error ?? "שגיאה בסיכום");
+    }
+    setSummarizing(null);
+    load();
+  };
+
   return (
     <div>
+      {(() => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const newToday = contacts.filter((c) => {
+          const created = new Date(c.createdAt);
+          return created >= today && (c._count?.activities ?? 0) === 0;
+        });
+        if (newToday.length === 0) return null;
+        return (
+          <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 mb-4 flex items-center gap-3">
+            <span className="text-2xl font-bold text-green-700">{newToday.length}</span>
+            <div>
+              <p className="font-semibold text-green-800">לידים חדשים היום 🎉</p>
+              <p className="text-xs text-green-600">פנו אליך היום ועדיין לא דיברת איתם בוואטספ</p>
+            </div>
+            <div className="mr-auto flex flex-wrap gap-1">
+              {newToday.slice(0, 5).map((c) => (
+                <span key={c.id} className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">{c.name}</span>
+              ))}
+              {newToday.length > 5 && <span className="text-xs text-green-500">+{newToday.length - 5}</span>}
+            </div>
+          </div>
+        );
+      })()}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">אנשי קשר</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold">אנשי קשר</h1>
+          <button
+            onClick={analyzeAll}
+            disabled={analyzingAll}
+            className="px-3 py-1.5 rounded-lg text-sm font-semibold border-2 border-gray-200 bg-white text-gray-500 hover:border-black hover:text-black transition-all disabled:opacity-50"
+          >
+            {analyzingAll ? "מנתח..." : "🔍 נתח מצב כל הלידים"}
+          </button>
+        </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger render={<Button onClick={openNew} />}>
             + הוסף איש קשר
@@ -148,6 +205,10 @@ export default function ContactsPage() {
                     {STATUSES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
+              </div>
+              <div>
+                <Label>סיכום שיחה</Label>
+                <Textarea value={form.whatsappSummary} onChange={(e) => setForm({ ...form, whatsappSummary: e.target.value })} placeholder="סכם כאן את השיחה עם הליד..." rows={3} />
               </div>
               <div>
                 <Label>הערות</Label>
@@ -194,26 +255,38 @@ export default function ContactsPage() {
               <TableRow>
                 <TableHead className="text-right">שם</TableHead>
                 <TableHead className="text-right">טלפון</TableHead>
-                <TableHead className="text-right">הודעה אחרונה</TableHead>
+                <TableHead className="text-right">מצב ליד</TableHead>
                 <TableHead className="text-right">סטטוס</TableHead>
-                <TableHead className="text-right">עסקאות</TableHead>
+                <TableHead className="text-right">כמה ספרים?</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.map((c) => (
                 <TableRow key={c.id}>
-                  <TableCell className="font-medium">{c.name}</TableCell>
+                  <TableCell>
+                    <Link href={`/contacts/${c.id}`} className="font-medium hover:text-purple-700 hover:underline block">
+                      {c.name}
+                    </Link>
+                    <span className="text-xs text-gray-400">
+                      {new Date(c.createdAt).toLocaleDateString("he-IL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  </TableCell>
                   <TableCell>{c.phone || "—"}</TableCell>
-                  <TableCell className="max-w-xs">
-                    {c.activities?.[0] ? (
-                      <div>
-                        <p className="text-sm truncate text-gray-700">{c.activities[0].note}</p>
-                        <p className="text-xs text-gray-400">
-                          {new Date(c.activities[0].createdAt).toLocaleDateString("he-IL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
-                        </p>
-                      </div>
-                    ) : <span className="text-gray-300">—</span>}
+                  <TableCell>
+                    {c.leadState ? (
+                      <span className={`text-xs font-semibold px-2 py-1 rounded-full border ${
+                        c.leadState.includes("מעוניין") || c.leadState.includes("חם") ? "bg-green-50 text-green-700 border-green-200" :
+                        c.leadState.includes("שולם") ? "bg-blue-50 text-blue-700 border-blue-200" :
+                        c.leadState.includes("לא רלוונטי") || c.leadState.includes("לא ענה") ? "bg-gray-100 text-gray-500 border-gray-200" :
+                        c.leadState.includes("תשלום") ? "bg-orange-50 text-orange-700 border-orange-200" :
+                        "bg-yellow-50 text-yellow-700 border-yellow-200"
+                      }`}>
+                        {c.leadState}
+                      </span>
+                    ) : (
+                      <span className="text-gray-300 text-xs">—</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Select value={c.status ?? "חדש"} onValueChange={(v) => v && updateStatus(c.id, v)}>
@@ -226,9 +299,24 @@ export default function ContactsPage() {
                     </Select>
                   </TableCell>
                   <TableCell>
-                    {c._count?.deals ? (
-                      <Badge variant="secondary">{c._count.deals}</Badge>
-                    ) : "—"}
+                    <div className="flex gap-1">
+                      {["1","2","3","4","5+"].map((n) => (
+                        <button
+                          key={n}
+                          onClick={async () => {
+                            await fetch(`/api/contacts/${c.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bookCount: n }) });
+                            load();
+                          }}
+                          className={`w-7 h-7 rounded-full text-xs font-semibold border-2 transition-all ${
+                            c.bookCount === n
+                              ? "border-black bg-black text-white"
+                              : "border-gray-200 bg-white text-gray-400 hover:border-gray-500"
+                          }`}
+                        >
+                          {n}
+                        </button>
+                      ))}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2 justify-end">

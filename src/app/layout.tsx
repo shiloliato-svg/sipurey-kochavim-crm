@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Link from "next/link";
+import Image from "next/image";
 
 export const metadata: Metadata = {
   title: "סיפורי כוכבים | CRM",
@@ -16,9 +17,9 @@ export default function RootLayout({
     <html lang="he" dir="rtl">
       <body className="min-h-screen bg-gray-50">
         <header className="bg-white border-b shadow-sm">
-          <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-6">
-            <span className="text-xl font-bold text-purple-700">✨ סיפורי כוכבים</span>
-            <nav className="flex gap-4">
+          <div className="max-w-6xl mx-auto px-4 py-4 flex flex-col items-center gap-3">
+            <Image src="/logo-cropped.png" alt="סיפורי כוכבים" width={220} height={90} className="object-contain" />
+            <nav className="flex gap-6">
               <Link href="/" className="text-gray-600 hover:text-purple-700 font-medium transition-colors">
                 דשבורד
               </Link>

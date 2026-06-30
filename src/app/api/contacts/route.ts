@@ -5,7 +5,13 @@ export async function GET() {
   const contacts = await prisma.contact.findMany({
     orderBy: { createdAt: "desc" },
     include: {
-      _count: { select: { deals: true, tasks: true } },
+      _count: {
+        select: {
+          deals: true,
+          tasks: true,
+          activities: { where: { type: "whatsapp" } },
+        },
+      },
       activities: {
         orderBy: { createdAt: "desc" },
         take: 1,

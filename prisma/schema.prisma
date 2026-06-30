@@ -12,10 +12,16 @@ model Contact {
   email     String?
   phone     String?
   company   String?
-  notes     String?
-  status    String   @default("חדש")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  notes              String?
+  status             String   @default("חדש")
+  whatsappSummary    String?
+  leadSource         String?
+  processStatus      String   @default("חדש")
+  productInterest    String?
+  bookCount          String?
+  leadState          String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   deals      Deal[]
   tasks      Task[]

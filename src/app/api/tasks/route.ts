@@ -10,9 +10,14 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const data = await req.json();
+  const { title, dueDate, contactId, dealId } = await req.json();
   const task = await prisma.task.create({
-    data,
+    data: {
+      title,
+      ...(dueDate ? { dueDate: new Date(dueDate) } : {}),
+      ...(contactId ? { contactId: Number(contactId) } : {}),
+      ...(dealId ? { dealId: Number(dealId) } : {}),
+    },
     include: { contact: { select: { name: true } }, deal: { select: { title: true } } },
   });
   return NextResponse.json(task, { status: 201 });
