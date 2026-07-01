@@ -390,7 +390,9 @@ export default function ContactsPage() {
                   <TableCell>
                     <Select value={c.status ?? "חדש"} onValueChange={(v) => v && updateStatus(c.id, v)}>
                       <SelectTrigger className={`w-32 text-xs h-7 justify-center ${statusStyle(c.status)}`}>
-                        <SelectValue className="flex-none text-center justify-center" />
+                        <SelectValue className="flex-none text-center justify-center">
+                          {(v: string) => statusLabel(v ?? "חדש")}
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         {STATUSES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
