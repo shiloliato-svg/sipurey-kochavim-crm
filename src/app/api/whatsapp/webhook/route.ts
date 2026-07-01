@@ -78,8 +78,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
+  // אותם 5 סוגי הודעות שהבוט עצמו מקבל (main.py) - חייבים להיות זהים,
+  // אחרת הודעה שהבוט כן עונה עליה תיעלם בשקט כאן ולא תיכנס ל-CRM
   const msgType = body.messageData?.typeMessage;
-  if (msgType !== "textMessage" && msgType !== "extendedTextMessage") {
+  const VALID_TYPES = [
+    "textMessage",
+    "extendedTextMessage",
+    "buttonsResponseMessage",
+    "templateButtonReplyMessage",
+    "interactiveResponseMessage",
+  ];
+  if (!VALID_TYPES.includes(msgType)) {
     return NextResponse.json({ ok: true });
   }
 
@@ -91,6 +100,9 @@ export async function POST(req: NextRequest) {
   const message =
     body.messageData?.textMessageData?.textMessage ??
     body.messageData?.extendedTextMessageData?.text ??
+    body.messageData?.buttonsResponseMessage?.selectedDisplayText ??
+    body.messageData?.templateButtonReplyMessage?.selectedDisplayText ??
+    body.messageData?.interactiveResponseMessage?.body ??
     "";
 
   if (!phone) return NextResponse.json({ ok: true });
