@@ -49,12 +49,12 @@ type Contact = {
 };
 
 const STATUSES = [
-  { value: "חדש", label: "חדש", color: "bg-gray-100 text-gray-700", icon: "🆕" },
-  { value: "חם", label: "🔥 חם", color: "bg-red-100 text-red-700", icon: "🔥" },
-  { value: "פושר", label: "🌡️ פושר", color: "bg-yellow-100 text-yellow-700", icon: "🌡️" },
-  { value: "קר", label: "❄️ קר", color: "bg-blue-100 text-blue-700", icon: "❄️" },
-  { value: "בטיפול", label: "⚙️ בטיפול", color: "bg-purple-100 text-purple-700", icon: "⚙️" },
-  { value: "סגור", label: "✅ סגור", color: "bg-green-100 text-green-700", icon: "✅" },
+  { value: "חדש", label: "חדש", color: "bg-gray-100 text-gray-700" },
+  { value: "חם", label: "🔥 חם", color: "bg-red-100 text-red-700" },
+  { value: "פושר", label: "🌡️ פושר", color: "bg-yellow-100 text-yellow-700" },
+  { value: "קר", label: "❄️ קר", color: "bg-blue-100 text-blue-700" },
+  { value: "בטיפול", label: "⚙️ בטיפול", color: "bg-purple-100 text-purple-700" },
+  { value: "סגור", label: "✅ סגור", color: "bg-green-100 text-green-700" },
 ];
 
 const statusStyle = (s: string) =>
@@ -62,9 +62,6 @@ const statusStyle = (s: string) =>
 
 const statusLabel = (s: string) =>
   STATUSES.find((x) => x.value === s)?.label ?? s;
-
-const statusIcon = (s: string) =>
-  STATUSES.find((x) => x.value === s)?.icon ?? "🆕";
 
 const empty = { name: "", email: "", phone: "", company: "", notes: "", status: "חדש", whatsappSummary: "" };
 const emptyTask = { title: "", dueDate: "" };
@@ -316,7 +313,6 @@ export default function ContactsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="text-center">🌡️</TableHead>
                 <TableHead className="text-right">שם</TableHead>
                 <TableHead className="text-right">טלפון</TableHead>
                 <TableHead className="text-right">משימה פתוחה</TableHead>
@@ -329,9 +325,6 @@ export default function ContactsPage() {
             <TableBody>
               {filtered.map((c) => (
                 <TableRow key={c.id}>
-                  <TableCell className="text-center text-xl" title={statusLabel(c.status ?? "חדש")}>
-                    {statusIcon(c.status ?? "חדש")}
-                  </TableCell>
                   <TableCell>
                     <Link href={`/contacts/${c.id}`} className="font-medium hover:text-purple-700 hover:underline block">
                       {c.name}
@@ -396,8 +389,8 @@ export default function ContactsPage() {
                   </TableCell>
                   <TableCell>
                     <Select value={c.status ?? "חדש"} onValueChange={(v) => v && updateStatus(c.id, v)}>
-                      <SelectTrigger className={`w-32 text-xs h-7 ${statusStyle(c.status)}`}>
-                        <SelectValue />
+                      <SelectTrigger className={`w-32 text-xs h-7 justify-center ${statusStyle(c.status)}`}>
+                        <SelectValue className="flex-none text-center justify-center" />
                       </SelectTrigger>
                       <SelectContent>
                         {STATUSES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
