@@ -66,6 +66,13 @@ const statusLabel = (s: string) =>
 const empty = { name: "", email: "", phone: "", company: "", notes: "", status: "חדש", whatsappSummary: "" };
 const emptyTask = { title: "", dueDate: "" };
 
+const toWhatsAppNumber = (phone: string) => {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.startsWith("972")) return digits;
+  if (digits.startsWith("0")) return "972" + digits.slice(1);
+  return "972" + digits;
+};
+
 export default function ContactsPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [search, setSearch] = useState("");
@@ -333,7 +340,24 @@ export default function ContactsPage() {
                       {new Date(c.createdAt).toLocaleDateString("he-IL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                     </span>
                   </TableCell>
-                  <TableCell>{c.phone || "—"}</TableCell>
+                                  <TableCell>
+                    {c.phone ? (
+                      <div className="flex items-center gap-1.5">
+                        <span>{c.phone}</span>
+                        <a
+                          href={`https://wa.me/${toWhatsAppNumber(c.phone)}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          title="פתח בוואטסאפ"
+                          className="text-green-600 hover:text-green-700"
+                        >
+                          💬
+                        </a>
+                      </div>
+                    ) : (
+                      "—"
+                    )}
+                  </TableCell>
                   <TableCell>
                     <div className="flex flex-col gap-1">
                       {c.tasks?.[0] ? (
