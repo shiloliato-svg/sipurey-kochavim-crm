@@ -15,6 +15,17 @@ function detectLeadSource(message: string): string | null {
   return null;
 }
 
+const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000; // 10 דקות
+const RATE_LIMIT_MAX_CALLS = 5; // מקסימום קריאות ל-Claude לאותו איש קשר בחלון הזמן
+
+async function isRateLimited(contactId: number): Promise<boolean> {
+  const since = new Date(Date.now() - RATE_LIMIT_WINDOW_MS);
+  const recentCount = await prisma.activity.count({
+    where: { contactId, type: "whatsapp", createdAt: { gte: since } },
+  });
+  return recentCount > RATE_LIMIT_MAX_CALLS;
+}
+
 async function detectBookCount(contactId: number): Promise<void> {
   const contact = await prisma.contact.findUnique({
     where: { id: contactId },
@@ -111,6 +122,11 @@ export async function POST(req: NextRequest) {
       contactId: contact.id,
     },
   });
+
+  // רשת ביטחון: אם יש הצפה חריגה מאותו איש קשר (למשל לולאה או ספאם), מדלגים על Claude
+  if (await isRateLimited(contact.id)) {
+    return NextResponse.json({ ok: true, rateLimited: true });
+  }
 
   // Analyze book count in background (non-blocking)
   detectBookCount(contact.id).catch(() => {});
