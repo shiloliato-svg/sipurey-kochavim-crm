@@ -64,6 +64,7 @@ const statusLabel = (s: string) =>
   STATUSES.find((x) => x.value === s)?.label ?? s;
 
 const empty = { name: "", email: "", phone: "", company: "", notes: "", status: "חדש", whatsappSummary: "" };
+const emptyTask = { title: "", dueDate: "" };
 
 export default function ContactsPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -74,6 +75,9 @@ export default function ContactsPage() {
   const [form, setForm] = useState(empty);
   const [summarizing, setSummarizing] = useState<number | null>(null);
   const [analyzingAll, setAnalyzingAll] = useState(false);
+  const [taskDialogContact, setTaskDialogContact] = useState<Contact | null>(null);
+  const [taskForm, setTaskForm] = useState(emptyTask);
+  const [savingTask, setSavingTask] = useState(false);
 
   const load = async () => {
     const res = await fetch("/api/contacts");
@@ -137,8 +141,62 @@ export default function ContactsPage() {
     load();
   };
 
+  const openTaskDialog = (c: Contact) => {
+    setTaskDialogContact(c);
+    setTaskForm(emptyTask);
+  };
+
+  const saveTask = async () => {
+    if (!taskForm.title.trim() || !taskDialogContact) return;
+    setSavingTask(true);
+    await fetch("/api/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: taskForm.title,
+        contactId: taskDialogContact.id,
+        ...(taskForm.dueDate ? { dueDate: new Date(taskForm.dueDate).toISOString() } : {}),
+      }),
+    });
+    setSavingTask(false);
+    setTaskDialogContact(null);
+    load();
+  };
+
   return (
     <div>
+      {/* Quick task dialog */}
+      <Dialog open={!!taskDialogContact} onOpenChange={(o) => { if (!o) setTaskDialogContact(null); }}>
+        <DialogContent className="max-w-sm" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>משימה חדשה — {taskDialogContact?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>כותרת המשימה *</Label>
+              <Input
+                value={taskForm.title}
+                onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
+                placeholder="למשל: להתקשר מחר בבוקר"
+                autoFocus
+                onKeyDown={(e) => { if (e.key === "Enter") saveTask(); }}
+              />
+            </div>
+            <div>
+              <Label>תאריך יעד (אופציונלי)</Label>
+              <Input
+                type="datetime-local"
+                value={taskForm.dueDate}
+                onChange={(e) => setTaskForm({ ...taskForm, dueDate: e.target.value })}
+              />
+            </div>
+            <Button onClick={saveTask} disabled={savingTask || !taskForm.title.trim()} className="w-full">
+              {savingTask ? "שומר..." : "הוסף משימה"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {(() => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -277,20 +335,28 @@ export default function ContactsPage() {
                   </TableCell>
                   <TableCell>{c.phone || "—"}</TableCell>
                   <TableCell>
-                    {c.tasks?.[0] ? (
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200 rounded px-2 py-0.5 inline-block">
-                          ⏰ {c.tasks[0].title}
-                        </span>
-                        {c.tasks[0].dueDate && (
-                          <span className={`text-xs ${new Date(c.tasks[0].dueDate) < new Date() ? "text-red-500" : "text-gray-400"}`}>
-                            {new Date(c.tasks[0].dueDate).toLocaleDateString("he-IL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                    <div className="flex flex-col gap-1">
+                      {c.tasks?.[0] ? (
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200 rounded px-2 py-0.5 inline-block">
+                            ⏰ {c.tasks[0].title}
                           </span>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="text-gray-300 text-xs">—</span>
-                    )}
+                          {c.tasks[0].dueDate && (
+                            <span className={`text-xs ${new Date(c.tasks[0].dueDate) < new Date() ? "text-red-500" : "text-gray-400"}`}>
+                              {new Date(c.tasks[0].dueDate).toLocaleDateString("he-IL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-gray-300 text-xs">—</span>
+                      )}
+                      <button
+                        onClick={() => openTaskDialog(c)}
+                        className="text-xs text-gray-400 hover:text-black border border-dashed border-gray-200 hover:border-black rounded px-2 py-0.5 w-fit transition-colors"
+                      >
+                        + משימה
+                      </button>
+                    </div>
                   </TableCell>
                   <TableCell>
                     <Select
