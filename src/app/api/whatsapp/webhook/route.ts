@@ -67,12 +67,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
+  const msgType = body.messageData?.typeMessage;
+  if (msgType !== "textMessage" && msgType !== "extendedTextMessage") {
+    return NextResponse.json({ ok: true });
+  }
+
   const sender = body.senderData;
   if (!sender) return NextResponse.json({ ok: true });
 
   const phone = sender.sender?.replace("@c.us", "") ?? "";
   const name = sender.senderName ?? phone;
-  const message = body.messageData?.textMessageData?.textMessage ?? "";
+  const message =
+    body.messageData?.textMessageData?.textMessage ??
+    body.messageData?.extendedTextMessageData?.text ??
+    "";
 
   if (!phone) return NextResponse.json({ ok: true });
 
@@ -106,16 +114,6 @@ export async function POST(req: NextRequest) {
 
   // Analyze book count in background (non-blocking)
   detectBookCount(contact.id).catch(() => {});
-
-  // Forward to the bot so it continues to handle the conversation
-  const botUrl = process.env.BOT_WEBHOOK_URL;
-  if (botUrl) {
-    fetch(botUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    }).catch(() => {});
-  }
 
   return NextResponse.json({ ok: true });
 }
