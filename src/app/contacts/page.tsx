@@ -41,9 +41,11 @@ type Contact = {
   whatsappSummary?: string;
   bookCount?: string;
   leadState?: string;
+  processStatus?: string;
   createdAt: string;
   _count?: { deals: number; tasks: number; activities: number };
   activities?: { note: string; createdAt: string; type: string }[];
+  tasks?: { id: number; title: string; dueDate?: string }[];
 };
 
 const STATUSES = [
@@ -255,7 +257,8 @@ export default function ContactsPage() {
               <TableRow>
                 <TableHead className="text-right">שם</TableHead>
                 <TableHead className="text-right">טלפון</TableHead>
-                <TableHead className="text-right">מצב ליד</TableHead>
+                <TableHead className="text-right">משימה פתוחה</TableHead>
+                <TableHead className="text-right">שלב תהליך</TableHead>
                 <TableHead className="text-right">סטטוס</TableHead>
                 <TableHead className="text-right">כמה ספרים?</TableHead>
                 <TableHead></TableHead>
@@ -274,19 +277,49 @@ export default function ContactsPage() {
                   </TableCell>
                   <TableCell>{c.phone || "—"}</TableCell>
                   <TableCell>
-                    {c.leadState ? (
-                      <span className={`text-xs font-semibold px-2 py-1 rounded-full border ${
-                        c.leadState.includes("מעוניין") || c.leadState.includes("חם") ? "bg-green-50 text-green-700 border-green-200" :
-                        c.leadState.includes("שולם") ? "bg-blue-50 text-blue-700 border-blue-200" :
-                        c.leadState.includes("לא רלוונטי") || c.leadState.includes("לא ענה") ? "bg-gray-100 text-gray-500 border-gray-200" :
-                        c.leadState.includes("תשלום") ? "bg-orange-50 text-orange-700 border-orange-200" :
-                        "bg-yellow-50 text-yellow-700 border-yellow-200"
-                      }`}>
-                        {c.leadState}
-                      </span>
+                    {c.tasks?.[0] ? (
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200 rounded px-2 py-0.5 inline-block">
+                          ⏰ {c.tasks[0].title}
+                        </span>
+                        {c.tasks[0].dueDate && (
+                          <span className={`text-xs ${new Date(c.tasks[0].dueDate) < new Date() ? "text-red-500" : "text-gray-400"}`}>
+                            {new Date(c.tasks[0].dueDate).toLocaleDateString("he-IL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                          </span>
+                        )}
+                      </div>
                     ) : (
                       <span className="text-gray-300 text-xs">—</span>
                     )}
+                  </TableCell>
+                  <TableCell>
+                    <Select
+                      value={c.processStatus ?? "חדש"}
+                      onValueChange={async (v) => {
+                        if (!v) return;
+                        await fetch(`/api/contacts/${c.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ processStatus: v }) });
+                        load();
+                      }}
+                    >
+                      <SelectTrigger className={`text-xs h-7 font-semibold rounded-full border px-2 ${
+                        c.processStatus === "שולם" ? "bg-blue-50 text-blue-700 border-blue-200" :
+                        c.processStatus === "נשלח" ? "bg-purple-50 text-purple-700 border-purple-200" :
+                        c.processStatus === "מחכה לתשלום" ? "bg-orange-50 text-orange-700 border-orange-200" :
+                        c.processStatus === "בהכנה" ? "bg-yellow-50 text-yellow-700 border-yellow-200" :
+                        c.processStatus === "לא רלוונטי" ? "bg-gray-100 text-gray-500 border-gray-200" :
+                        c.processStatus === "ללא מענה" ? "bg-red-50 text-red-400 border-red-200" :
+                        c.processStatus === "מחכה לפרטים" ? "bg-cyan-50 text-cyan-700 border-cyan-200" :
+                        c.processStatus === "יצרנו קשר" ? "bg-green-50 text-green-700 border-green-200" :
+                        "bg-gray-100 text-gray-500 border-gray-200"
+                      }`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {["חדש","יצרנו קשר","מחכה לפרטים","מחכה לתשלום","ללא מענה","בהכנה","נשלח","לא רלוונטי","שולם"].map((s) => (
+                          <SelectItem key={s} value={s}>{s}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </TableCell>
                   <TableCell>
                     <Select value={c.status ?? "חדש"} onValueChange={(v) => v && updateStatus(c.id, v)}>
