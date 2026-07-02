@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const tasks = await prisma.task.findMany({
     orderBy: [{ completed: "asc" }, { dueDate: "asc" }],

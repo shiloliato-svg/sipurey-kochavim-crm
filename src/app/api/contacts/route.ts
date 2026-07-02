@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const contacts = await prisma.contact.findMany({
     orderBy: { createdAt: "desc" },
@@ -16,6 +18,12 @@ export async function GET() {
         orderBy: { createdAt: "desc" },
         take: 1,
         select: { note: true, createdAt: true, type: true },
+      },
+      tasks: {
+        where: { completed: false },
+        orderBy: { dueDate: "asc" },
+        take: 1,
+        select: { id: true, title: true, dueDate: true },
       },
     },
   });
