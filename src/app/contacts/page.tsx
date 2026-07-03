@@ -130,6 +130,11 @@ export default function ContactsPage() {
     load();
   };
 
+  const completeTask = async (taskId: number) => {
+    await fetch(`/api/tasks/${taskId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ completed: true }) });
+    load();
+  };
+
   const analyzeAll = async () => {
     setAnalyzingAll(true);
     await fetch("/api/contacts/analyze-all", { method: "POST" });
@@ -362,9 +367,18 @@ export default function ContactsPage() {
                     <div className="flex flex-col gap-1">
                       {c.tasks?.[0] ? (
                         <div className="flex flex-col gap-0.5">
-                          <span className="text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200 rounded px-2 py-0.5 inline-block">
-                            ⏰ {c.tasks[0].title}
-                          </span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => completeTask(c.tasks![0].id)}
+                              title="סמן כבוצע"
+                              className="w-5 h-5 rounded-full border-2 border-green-400 text-green-500 hover:bg-green-400 hover:text-white flex items-center justify-center transition-colors text-xs font-bold flex-shrink-0"
+                            >
+                              ✓
+                            </button>
+                            <span className="text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200 rounded px-2 py-0.5 inline-block">
+                              ⏰ {c.tasks[0].title}
+                            </span>
+                          </div>
                           {c.tasks[0].dueDate && (
                             <span className={`text-xs ${new Date(c.tasks[0].dueDate) < new Date() ? "text-red-500" : "text-gray-400"}`}>
                               {new Date(c.tasks[0].dueDate).toLocaleDateString("he-IL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
