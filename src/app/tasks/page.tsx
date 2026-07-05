@@ -34,6 +34,7 @@ type Task = {
 type Contact = { id: number; name: string };
 
 const empty = { title: "", dueDate: "", contactId: "", dealId: "" };
+const emptyEdit = { title: "", dueDate: "", contactId: "" };
 
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
 
@@ -41,12 +42,15 @@ function dueDateLabel(dueDate: string): { text: string; tone: "overdue" | "today
   const today = startOfDay(new Date());
   const due = startOfDay(new Date(dueDate));
   const diffDays = Math.round((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-  const dateStr = new Date(dueDate).toLocaleDateString("he-IL", { day: "numeric", month: "short" });
+  const d = new Date(dueDate);
+  const dateStr = d.toLocaleDateString("he-IL", { day: "numeric", month: "short" });
+  const timeStr = d.toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" });
+  const full = `${dateStr} ${timeStr}`;
 
-  if (diffDays < 0) return { text: `באיחור של ${Math.abs(diffDays)} ${Math.abs(diffDays) === 1 ? "יום" : "ימים"} (${dateStr})`, tone: "overdue" };
-  if (diffDays === 0) return { text: `היום (${dateStr})`, tone: "today" };
-  if (diffDays === 1) return { text: `מחר (${dateStr})`, tone: "soon" };
-  return { text: dateStr, tone: "later" };
+  if (diffDays < 0) return { text: `באיחור (${full})`, tone: "overdue" };
+  if (diffDays === 0) return { text: `היום ${timeStr}`, tone: "today" };
+  if (diffDays === 1) return { text: `מחר ${timeStr}`, tone: "soon" };
+  return { text: full, tone: "later" };
 }
 
 const dueDateToneClass: Record<string, string> = {
@@ -96,6 +100,9 @@ export default function TasksPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(empty);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [editForm, setEditForm] = useState(emptyEdit);
 
   const load = async () => {
     const [t, c] = await Promise.all([
@@ -128,6 +135,35 @@ export default function TasksPage() {
 
   const remove = async (id: number) => {
     await fetch(`/api/tasks/${id}`, { method: "DELETE" });
+    load();
+  };
+
+  const openEdit = (t: Task) => {
+    setEditingTask(t);
+    const localDT = t.dueDate
+      ? new Date(new Date(t.dueDate).getTime() - new Date().getTimezoneOffset() * 60000)
+          .toISOString().slice(0, 16)
+      : "";
+    setEditForm({
+      title: t.title,
+      dueDate: localDT,
+      contactId: t.contactId?.toString() ?? "",
+    });
+    setEditOpen(true);
+  };
+
+  const saveEdit = async () => {
+    if (!editingTask || !editForm.title.trim()) return;
+    await fetch(`/api/tasks/${editingTask.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: editForm.title,
+        dueDate: editForm.dueDate ? new Date(editForm.dueDate).toISOString() : null,
+        contactId: editForm.contactId && editForm.contactId !== "none" ? Number(editForm.contactId) : null,
+      }),
+    });
+    setEditOpen(false);
     load();
   };
 
@@ -224,7 +260,10 @@ export default function TasksPage() {
                         {!t.dueDate && <span className="text-xs text-gray-300">ללא תאריך יעד</span>}
                       </div>
                     </div>
-                    <button onClick={() => remove(t.id)} className="text-gray-300 hover:text-red-400 transition-colors text-lg shrink-0" title="מחק משימה">✕</button>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button onClick={() => openEdit(t)} className="text-gray-300 hover:text-blue-400 transition-colors text-base" title="ערוך משימה">✏️</button>
+                      <button onClick={() => remove(t.id)} className="text-gray-300 hover:text-red-400 transition-colors text-lg" title="מחק משימה">✕</button>
+                    </div>
                   </div>
                 );
               })}
@@ -252,6 +291,48 @@ export default function TasksPage() {
           )}
         </div>
       )}
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>עריכת משימה</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>משימה *</Label>
+              <Input
+                value={editForm.title}
+                onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                placeholder="תיאור המשימה"
+              />
+            </div>
+            <div>
+              <Label>תאריך ושעה</Label>
+              <Input
+                type="datetime-local"
+                value={editForm.dueDate}
+                onChange={(e) => setEditForm({ ...editForm, dueDate: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>קשור ללקוח</Label>
+              <Select
+                value={editForm.contactId || "none"}
+                onValueChange={(v) => setEditForm({ ...editForm, contactId: v === "none" ? "" : v })}
+              >
+                <SelectTrigger><SelectValue placeholder="בחר לקוח (אופציונלי)" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">ללא</SelectItem>
+                  {contacts.map((c) => (
+                    <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={saveEdit} className="w-full">שמור שינויים</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
