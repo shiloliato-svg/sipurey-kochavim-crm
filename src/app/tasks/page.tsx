@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
+import { toWhatsAppNumber } from "@/lib/utils";
 
 type Task = {
   id: number;
@@ -26,7 +27,7 @@ type Task = {
   dueDate?: string;
   completed: boolean;
   contactId?: number;
-  contact?: { name: string };
+  contact?: { id: number; name: string; phone?: string | null };
   dealId?: number;
   deal?: { title: string };
 };
@@ -34,6 +35,62 @@ type Task = {
 type Contact = { id: number; name: string };
 
 const empty = { title: "", dueDate: "", contactId: "", dealId: "" };
+
+const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+
+function dueDateLabel(dueDate: string): { text: string; tone: "overdue" | "today" | "soon" | "later" } {
+  const today = startOfDay(new Date());
+  const due = startOfDay(new Date(dueDate));
+  const diffDays = Math.round((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  const dateStr = new Date(dueDate).toLocaleDateString("he-IL", { day: "numeric", month: "short" });
+
+  if (diffDays < 0) return { text: `באיחור של ${Math.abs(diffDays)} ${Math.abs(diffDays) === 1 ? "יום" : "ימים"} (${dateStr})`, tone: "overdue" };
+  if (diffDays === 0) return { text: `היום (${dateStr})`, tone: "today" };
+  if (diffDays === 1) return { text: `מחר (${dateStr})`, tone: "soon" };
+  return { text: dateStr, tone: "later" };
+}
+
+const dueDateToneClass: Record<string, string> = {
+  overdue: "text-red-600 font-semibold",
+  today: "text-orange-600 font-semibold",
+  soon: "text-purple-600",
+  later: "text-gray-400",
+};
+
+const dueDateToneIcon: Record<string, string> = {
+  overdue: "⚠️",
+  today: "🔥",
+  soon: "📅",
+  later: "📅",
+};
+
+function WhatsAppButton({ phone }: { phone?: string | null }) {
+  if (!phone) return null;
+  return (
+    <a
+      href={`https://wa.me/${toWhatsAppNumber(phone)}`}
+      target="_blank"
+      rel="noreferrer"
+      onClick={(e) => e.stopPropagation()}
+      className="text-xs inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-green-200 bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
+      title="פתח שיחת וואטסאפ"
+    >
+      💬 וואטסאפ
+    </a>
+  );
+}
+
+function ContactLink({ contactId, name }: { contactId: number; name: string }) {
+  return (
+    <Link
+      href={`/contacts/${contactId}`}
+      className="text-xs px-2 py-0.5 rounded-full border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 underline cursor-pointer transition-colors"
+      title="מעבר לפרופיל הלקוח"
+    >
+      👤 {name}
+    </Link>
+  );
+}
 
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -75,14 +132,23 @@ export default function TasksPage() {
     load();
   };
 
-  const pending = tasks.filter((t) => !t.completed);
-  const done = tasks.filter((t) => t.completed);
+  const isOverdue = (t: Task) => !t.completed && !!t.dueDate && startOfDay(new Date(t.dueDate)) < startOfDay(new Date());
 
-  const isOverdue = (t: Task) => !t.completed && t.dueDate && new Date(t.dueDate) < new Date();
+  // ממתינות: קודם באיחור, אחר כך לפי תאריך יעד קרוב, ובסוף בלי תאריך יעד בכלל
+  const pending = tasks
+    .filter((t) => !t.completed)
+    .sort((a, b) => {
+      if (!a.dueDate && !b.dueDate) return 0;
+      if (!a.dueDate) return 1;
+      if (!b.dueDate) return -1;
+      return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+    });
+  const done = tasks.filter((t) => t.completed);
+  const overdueCount = pending.filter(isOverdue).length;
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-2">
         <h1 className="text-2xl font-bold">משימות</h1>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger render={<Button />}>
@@ -119,6 +185,18 @@ export default function TasksPage() {
         </Dialog>
       </div>
 
+      {pending.length > 0 && (
+        <p className="text-sm text-gray-500 mb-4">
+          {overdueCount > 0 ? (
+            <span className="text-red-600 font-semibold">⚠️ {overdueCount} משימות באיחור</span>
+          ) : (
+            <span>אין משימות באיחור 🎉</span>
+          )}
+          {" · "}
+          {pending.length} ממתינות בסך הכל
+        </p>
+      )}
+
       {tasks.length === 0 ? (
         <div className="text-center py-16 text-gray-400">
           <p className="text-4xl mb-3">✅</p>
@@ -129,24 +207,28 @@ export default function TasksPage() {
           <div>
             <h2 className="text-sm font-semibold text-gray-500 mb-3">ממתינות ({pending.length})</h2>
             <div className="space-y-2">
-              {pending.map((t) => (
-                <div key={t.id} className={`bg-white border rounded-lg px-4 py-3 flex items-center gap-3 ${isOverdue(t) ? "border-red-300 bg-red-50" : ""}`}>
-                  <input type="checkbox" checked={t.completed} onChange={() => toggle(t)} className="w-4 h-4 accent-purple-600 cursor-pointer" />
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">{t.title}</p>
-                    <div className="flex gap-2 mt-1 flex-wrap">
-                      {t.contact && <Badge variant="outline" className="text-xs">{t.contact.name}</Badge>}
-                      {t.dueDate && (
-                        <span className={`text-xs ${isOverdue(t) ? "text-red-600 font-semibold" : "text-gray-400"}`}>
-                          {isOverdue(t) ? "⚠️ " : "📅 "}
-                          {new Date(t.dueDate).toLocaleDateString("he-IL")}
-                        </span>
-                      )}
+              {pending.map((t) => {
+                const due = t.dueDate ? dueDateLabel(t.dueDate) : null;
+                return (
+                  <div key={t.id} className={`bg-white border rounded-lg px-4 py-3 flex items-center gap-3 ${isOverdue(t) ? "border-red-300 bg-red-50" : ""}`}>
+                    <input type="checkbox" checked={t.completed} onChange={() => toggle(t)} className="w-4 h-4 accent-purple-600 cursor-pointer shrink-0" title="סמן כהושלם" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm">{t.title}</p>
+                      <div className="flex gap-2 mt-1.5 flex-wrap items-center">
+                        {t.contact && <ContactLink contactId={t.contact.id} name={t.contact.name} />}
+                        {t.contact && <WhatsAppButton phone={t.contact.phone} />}
+                        {due && (
+                          <span className={`text-xs ${dueDateToneClass[due.tone]}`}>
+                            {dueDateToneIcon[due.tone]} {due.text}
+                          </span>
+                        )}
+                        {!t.dueDate && <span className="text-xs text-gray-300">ללא תאריך יעד</span>}
+                      </div>
                     </div>
+                    <button onClick={() => remove(t.id)} className="text-gray-300 hover:text-red-400 transition-colors text-lg shrink-0" title="מחק משימה">✕</button>
                   </div>
-                  <button onClick={() => remove(t.id)} className="text-gray-300 hover:text-red-400 transition-colors text-lg">✕</button>
-                </div>
-              ))}
+                );
+              })}
               {pending.length === 0 && <p className="text-sm text-gray-400 py-2">כל המשימות הושלמו! 🎉</p>}
             </div>
           </div>
@@ -156,10 +238,14 @@ export default function TasksPage() {
               <h2 className="text-sm font-semibold text-gray-400 mb-3">הושלמו ({done.length})</h2>
               <div className="space-y-1">
                 {done.map((t) => (
-                  <div key={t.id} className="bg-gray-50 border rounded-lg px-4 py-2 flex items-center gap-3 opacity-60">
-                    <input type="checkbox" checked={t.completed} onChange={() => toggle(t)} className="w-4 h-4 accent-purple-600 cursor-pointer" />
-                    <p className="text-sm line-through text-gray-400 flex-1">{t.title}</p>
-                    <button onClick={() => remove(t.id)} className="text-gray-300 hover:text-red-400 transition-colors">✕</button>
+                  <div key={t.id} className="bg-gray-50 border rounded-lg px-4 py-2 flex items-center gap-3 opacity-60 hover:opacity-100 transition-opacity">
+                    <input type="checkbox" checked={t.completed} onChange={() => toggle(t)} className="w-4 h-4 accent-purple-600 cursor-pointer shrink-0" title="סמן כלא הושלם" />
+                    <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
+                      <p className="text-sm line-through text-gray-400">{t.title}</p>
+                      {t.contact && <ContactLink contactId={t.contact.id} name={t.contact.name} />}
+                      {t.contact && <WhatsAppButton phone={t.contact.phone} />}
+                    </div>
+                    <button onClick={() => remove(t.id)} className="text-gray-300 hover:text-red-400 transition-colors shrink-0" title="מחק משימה">✕</button>
                   </div>
                 ))}
               </div>
