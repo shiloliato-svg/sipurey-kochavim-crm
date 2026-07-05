@@ -82,13 +82,13 @@ function WhatsAppButton({ phone }: { phone?: string | null }) {
 
 function ContactLink({ contactId, name }: { contactId: number; name: string }) {
   return (
-    <Link
+    <a
       href={`/contacts/${contactId}`}
       className="text-xs px-2 py-0.5 rounded-full border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 underline cursor-pointer transition-colors"
       title="מעבר לפרופיל הלקוח"
     >
       👤 {name}
-    </Link>
+    </a>
   );
 }
 
