@@ -318,7 +318,7 @@ export default function TasksPage() {
               <Label>קשור ללקוח</Label>
               <Select
                 value={editForm.contactId || "none"}
-                onValueChange={(v) => setEditForm({ ...editForm, contactId: v === "none" ? "" : v })}
+                onValueChange={(v) => setEditForm({ ...editForm, contactId: !v || v === "none" ? "" : v })}
               >
                 <SelectTrigger><SelectValue placeholder="בחר לקוח (אופציונלי)" /></SelectTrigger>
                 <SelectContent>
