@@ -439,7 +439,7 @@ export default function ContactsPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">
-                      {["1","2","3","4","5+"].map((n) => (
+                      {["1","2","3+"].map((n) => (
                         <button
                           key={n}
                           onClick={async () => {
