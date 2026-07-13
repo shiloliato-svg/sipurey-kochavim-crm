@@ -483,7 +483,7 @@ export default function ContactsPage() {
           </DialogHeader>
           <div className="space-y-2">
             {[
-              `היי ${followUpContact?.name ?? ""}, רציתי לוודא שיש לנו את כל הפרטים הנדרשים ממך - האם הכל הגיע אלינו? 📋`,
+              `היי ${followUpContact?.name ?? ""}, עדיין חסרים לנו כמה פרטים ממך - אשמח אם תוכל/י לשלוח לנו אותם 🙏`,
               `היי ${followUpContact?.name ?? ""}, זכרתי אותך היום ורציתי לברר אם יש משהו שאוכל לעזור בו 🙏`,
               `היי ${followUpContact?.name ?? ""}, ניסינו לתפוס אותך ללא מענה ❤️`,
               `היי ${followUpContact?.name ?? ""}, איך מתקדם? רציתי לשמוע ממך 😊`,
