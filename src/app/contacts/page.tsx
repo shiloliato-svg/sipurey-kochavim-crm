@@ -485,7 +485,7 @@ export default function ContactsPage() {
             {[
               `היי ${followUpContact?.name ?? ""} 😊 רציתי לעשות צ'ק אין קטן ולראות איך אתה/את מרגיש/ה`,
               `היי ${followUpContact?.name ?? ""}, זכרתי אותך היום ורציתי לברר אם יש משהו שאוכל לעזור בו 🙏`,
-              `שלום ${followUpContact?.name ?? ""}, יש לנו משהו חדש שיכול לעניין אותך - אשמח לספר!`,
+              `היי ${followUpContact?.name ?? ""}, ניסינו לתפוס אותך ללא מענה ❤️`,
               `היי ${followUpContact?.name ?? ""}, איך מתקדם? רציתי לשמוע ממך 😊`,
             ].map((msg) => (
               <a
