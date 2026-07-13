@@ -85,6 +85,7 @@ export default function ContactsPage() {
   const [taskDialogContact, setTaskDialogContact] = useState<Contact | null>(null);
   const [taskForm, setTaskForm] = useState(emptyTask);
   const [savingTask, setSavingTask] = useState(false);
+  const [followUpContact, setFollowUpContact] = useState<Contact | null>(null);
 
   const load = async () => {
     const res = await fetch("/api/contacts");
@@ -458,7 +459,12 @@ export default function ContactsPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="flex gap-2 justify-end">
+                    <div className="flex gap-2 justify-end flex-wrap">
+                      {c.phone && (
+                        <Button size="sm" variant="outline" className="text-green-700 border-green-300 hover:bg-green-50" onClick={() => setFollowUpContact(c)}>
+                          💬 פולו אפ
+                        </Button>
+                      )}
                       <Button size="sm" variant="outline" onClick={() => openEdit(c)}>עריכה</Button>
                       <Button size="sm" variant="destructive" onClick={() => remove(c.id)}>מחיקה</Button>
                     </div>
@@ -469,6 +475,33 @@ export default function ContactsPage() {
           </Table>
         </div>
       )}
+
+      <Dialog open={!!followUpContact} onOpenChange={(o) => { if (!o) setFollowUpContact(null); }}>
+        <DialogContent className="max-w-sm" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>פולו אפ ל{followUpContact?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            {[
+              `היי ${followUpContact?.name ?? ""} 😊 רציתי לעשות צ'ק אין קטן ולראות איך אתה/את מרגיש/ה`,
+              `היי ${followUpContact?.name ?? ""}, זכרתי אותך היום ורציתי לברר אם יש משהו שאוכל לעזור בו 🙏`,
+              `שלום ${followUpContact?.name ?? ""}, יש לנו משהו חדש שיכול לעניין אותך - אשמח לספר!`,
+              `היי ${followUpContact?.name ?? ""}, איך מתקדם? רציתי לשמוע ממך 😊`,
+            ].map((msg) => (
+              <a
+                key={msg}
+                href={`https://wa.me/${followUpContact?.phone ? toWhatsAppNumber(followUpContact.phone) : ""}?text=${encodeURIComponent(msg)}`}
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => setFollowUpContact(null)}
+                className="block w-full text-right text-sm px-4 py-3 rounded-lg border border-gray-200 hover:bg-green-50 hover:border-green-300 transition-colors cursor-pointer"
+              >
+                {msg}
+              </a>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
