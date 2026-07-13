@@ -484,7 +484,7 @@ export default function ContactsPage() {
           <div className="space-y-2">
             {[
               `היי ${followUpContact?.name ?? ""}, עדיין חסרים לנו כמה פרטים - אשמח לקבל אותם בהקדם 🙏`,
-              `היי ${followUpContact?.name ?? ""}, זכרתי אותך היום ורציתי לברר אם יש משהו שאוכל לעזור בו 🙏`,
+              `היי ${followUpContact?.name ?? ""}, רציתי לדעת אם החלטת להתקדם - אנחנו כאן לכל שאלה 🙏`,
               `היי ${followUpContact?.name ?? ""}, ניסינו לתפוס אותך ללא מענה ❤️`,
               `היי ${followUpContact?.name ?? ""}, איך מתקדם? רציתי לשמוע ממך 😊`,
             ].map((msg) => (
