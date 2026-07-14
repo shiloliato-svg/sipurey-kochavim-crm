@@ -84,6 +84,13 @@ export default function ContactDetailPage() {
   const [newTask, setNewTask] = useState({ title: "", dueDate: "" });
   const [addingTask, setAddingTask] = useState(false);
 
+  const toWhatsAppNumber = (phone: string) => {
+    const digits = phone.replace(/\D/g, "");
+    if (digits.startsWith("972")) return digits;
+    if (digits.startsWith("0")) return "972" + digits.slice(1);
+    return "972" + digits;
+  };
+
   const load = useCallback(async () => {
     const res = await fetch(`/api/contacts/${id}`);
     if (res.ok) setContact(await res.json());
@@ -201,7 +208,7 @@ export default function ContactDetailPage() {
         {/* כפתורי פעולה מהירה */}
         <div className="flex gap-2 mt-4 flex-wrap">
           {contact.phone && (
-            <a href={`https://wa.me/972${contact.phone.replace(/^0/, "")}`} target="_blank" rel="noreferrer">
+            <a href={`https://wa.me/${toWhatsAppNumber(contact.phone)}`} target="_blank" rel="noreferrer">
               <Button size="sm" className="bg-green-500 hover:bg-green-600 text-white gap-1">
                 💬 וואטספ
               </Button>

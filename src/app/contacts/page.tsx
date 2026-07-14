@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import { Pencil } from "lucide-react";
 
 type Contact = {
   id: number;
@@ -65,6 +66,7 @@ const statusLabel = (s: string) =>
 
 const empty = { name: "", email: "", phone: "", company: "", notes: "", status: "חדש", whatsappSummary: "" };
 const emptyTask = { title: "", dueDate: "" };
+const emptyEditTask = { title: "", dueDate: "" };
 
 const toWhatsAppNumber = (phone: string) => {
   const digits = phone.replace(/\D/g, "");
@@ -86,6 +88,9 @@ export default function ContactsPage() {
   const [taskForm, setTaskForm] = useState(emptyTask);
   const [savingTask, setSavingTask] = useState(false);
   const [followUpContact, setFollowUpContact] = useState<Contact | null>(null);
+  const [editingTask, setEditingTask] = useState<{ id: number; title: string; dueDate?: string } | null>(null);
+  const [editTaskForm, setEditTaskForm] = useState(emptyEditTask);
+  const [savingEditTask, setSavingEditTask] = useState(false);
 
   const load = async () => {
     const res = await fetch("/api/contacts");
@@ -173,6 +178,31 @@ export default function ContactsPage() {
     });
     setSavingTask(false);
     setTaskDialogContact(null);
+    load();
+  };
+
+  const openEditTask = (task: { id: number; title: string; dueDate?: string }) => {
+    setEditingTask(task);
+    const localDT = task.dueDate
+      ? new Date(new Date(task.dueDate).getTime() - new Date().getTimezoneOffset() * 60000)
+          .toISOString().slice(0, 16)
+      : "";
+    setEditTaskForm({ title: task.title, dueDate: localDT });
+  };
+
+  const saveEditTask = async () => {
+    if (!editingTask || !editTaskForm.title.trim()) return;
+    setSavingEditTask(true);
+    await fetch(`/api/tasks/${editingTask.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: editTaskForm.title,
+        dueDate: editTaskForm.dueDate ? new Date(editTaskForm.dueDate).toISOString() : null,
+      }),
+    });
+    setSavingEditTask(false);
+    setEditingTask(null);
     load();
   };
 
@@ -376,9 +406,16 @@ export default function ContactsPage() {
                             >
                               ✓
                             </button>
-                            <span className="text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200 rounded px-2 py-0.5 inline-block">
+                            <span className="text-xs font-medium text-orange-700 bg-orange-50 border border-orange-200 rounded px-2 py-0.5 inline-flex items-center gap-1">
                               ⏰ {c.tasks[0].title}
                             </span>
+                            <button
+                              onClick={() => openEditTask(c.tasks![0])}
+                              title="ערוך משימה"
+                              className="flex items-center justify-center w-5 h-5 rounded-full border border-blue-300 bg-blue-50 text-blue-600 hover:bg-blue-500 hover:text-white transition-colors flex-shrink-0"
+                            >
+                              <Pencil className="w-3 h-3" />
+                            </button>
                           </div>
                           {c.tasks[0].dueDate && (
                             <span className={`text-xs ${new Date(c.tasks[0].dueDate) < new Date() ? "text-red-500" : "text-gray-400"}`}>
@@ -483,9 +520,9 @@ export default function ContactsPage() {
           </DialogHeader>
           <div className="space-y-2">
             {[
-              `היי ${followUpContact?.name ?? ""}, עדיין חסרים לנו כמה פרטים - אשמח לקבל אותם בהקדם 🙏`,
-              `היי ${followUpContact?.name ?? ""}, רציתי לדעת אם החלטת להתקדם - אנחנו כאן לכל שאלה 🙏`,
-              `היי ${followUpContact?.name ?? ""}, ניסינו לתפוס אותך ללא מענה ❤️`,
+              `היי ${followUpContact?.name ?? ""}, עדיין חסרים לנו כמה פרטים - אשמח לקבל אותם בהקדם 🙂`,
+              `היי ${followUpContact?.name ?? ""}, רציתי לדעת אם החלטת להתקדם - אנחנו כאן לכל שאלה 👍`,
+              `היי ${followUpContact?.name ?? ""}, ניסינו לתפוס אותך ללא מענה 🙂`,
               `היי ${followUpContact?.name ?? ""}, איך מתקדם? רציתי לשמוע ממך 😊`,
             ].map((msg) => (
               <a
@@ -499,6 +536,37 @@ export default function ContactsPage() {
                 {msg}
               </a>
             ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editingTask} onOpenChange={(o) => { if (!o) setEditingTask(null); }}>
+        <DialogContent className="max-w-sm" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>עריכת משימה</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>כותרת המשימה *</Label>
+              <Input
+                value={editTaskForm.title}
+                onChange={(e) => setEditTaskForm({ ...editTaskForm, title: e.target.value })}
+                placeholder="תיאור המשימה"
+                autoFocus
+                onKeyDown={(e) => { if (e.key === "Enter") saveEditTask(); }}
+              />
+            </div>
+            <div>
+              <Label>תאריך ושעה</Label>
+              <Input
+                type="datetime-local"
+                value={editTaskForm.dueDate}
+                onChange={(e) => setEditTaskForm({ ...editTaskForm, dueDate: e.target.value })}
+              />
+            </div>
+            <Button onClick={saveEditTask} disabled={savingEditTask || !editTaskForm.title.trim()} className="w-full">
+              {savingEditTask ? "שומר..." : "שמור שינויים"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

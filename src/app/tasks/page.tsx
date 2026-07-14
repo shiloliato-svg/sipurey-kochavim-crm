@@ -19,6 +19,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toWhatsAppNumber } from "@/lib/utils";
+import {
+  AlertTriangle,
+  Calendar,
+  CheckCircle2,
+  Flame,
+  MessageCircle,
+  Pencil,
+  PartyPopper,
+  Send,
+  User,
+  X,
+} from "lucide-react";
 
 type Task = {
   id: number;
@@ -60,11 +72,11 @@ const dueDateToneClass: Record<string, string> = {
   later: "text-gray-400",
 };
 
-const dueDateToneIcon: Record<string, string> = {
-  overdue: "⚠️",
-  today: "🔥",
-  soon: "📅",
-  later: "📅",
+const dueDateToneIcon: Record<string, typeof AlertTriangle> = {
+  overdue: AlertTriangle,
+  today: Flame,
+  soon: Calendar,
+  later: Calendar,
 };
 
 function WhatsAppButton({ phone }: { phone?: string | null }) {
@@ -78,8 +90,20 @@ function WhatsAppButton({ phone }: { phone?: string | null }) {
       className="text-xs inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-green-200 bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
       title="פתח שיחת וואטסאפ"
     >
-      💬 וואטסאפ
+      <MessageCircle className="w-3.5 h-3.5" /> וואטסאפ
     </a>
+  );
+}
+
+function FollowUpButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); onClick(); }}
+      className="text-xs inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors"
+      title="שלח פולו אפ ללקוח"
+    >
+      <Send className="w-3.5 h-3.5" /> פולו אפ
+    </button>
   );
 }
 
@@ -87,12 +111,21 @@ function ContactLink({ contactId, name }: { contactId: number; name: string }) {
   return (
     <span
       onClick={() => { window.location.href = `/contacts/${contactId}`; }}
-      className="text-xs px-2 py-0.5 rounded-full border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 underline cursor-pointer transition-colors"
+      className="text-xs px-2 py-0.5 rounded-full border border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100 underline cursor-pointer transition-colors inline-flex items-center gap-1"
       title="מעבר לפרופיל הלקוח"
     >
-      👤 {name}
+      <User className="w-3.5 h-3.5" /> {name}
     </span>
   );
+}
+
+function followUpTemplates(name: string) {
+  return [
+    `היי ${name}, עדיין חסרים לנו כמה פרטים - אשמח לקבל אותם בהקדם 🙂`,
+    `היי ${name}, רציתי לדעת אם החלטת להתקדם - אנחנו כאן לכל שאלה 👍`,
+    `היי ${name}, ניסינו לתפוס אותך ללא מענה 🙂`,
+    `היי ${name}, איך מתקדם? רציתי לשמוע ממך 😊`,
+  ];
 }
 
 export default function TasksPage() {
@@ -103,6 +136,8 @@ export default function TasksPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editForm, setEditForm] = useState(emptyEdit);
+  const [followUpContact, setFollowUpContact] = useState<{ id: number; name: string; phone: string } | null>(null);
+  const [sendingFollowUp, setSendingFollowUp] = useState(false);
 
   const load = async () => {
     const [t, c] = await Promise.all([
@@ -167,6 +202,18 @@ export default function TasksPage() {
     load();
   };
 
+  const sendFollowUp = async (message: string) => {
+    if (!followUpContact) return;
+    setSendingFollowUp(true);
+    await fetch("/api/whatsapp/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contactId: followUpContact.id, phone: followUpContact.phone, message }),
+    });
+    setSendingFollowUp(false);
+    setFollowUpContact(null);
+  };
+
   const isOverdue = (t: Task) => !t.completed && !!t.dueDate && startOfDay(new Date(t.dueDate)) < startOfDay(new Date());
 
   // ממתינות: קודם באיחור, אחר כך לפי תאריך יעד קרוב, ובסוף בלי תאריך יעד בכלל
@@ -221,20 +268,24 @@ export default function TasksPage() {
       </div>
 
       {pending.length > 0 && (
-        <p className="text-sm text-gray-500 mb-4">
+        <p className="text-sm text-gray-500 mb-4 flex items-center gap-1 flex-wrap">
           {overdueCount > 0 ? (
-            <span className="text-red-600 font-semibold">⚠️ {overdueCount} משימות באיחור</span>
+            <span className="text-red-600 font-semibold inline-flex items-center gap-1">
+              <AlertTriangle className="w-4 h-4" /> {overdueCount} משימות באיחור
+            </span>
           ) : (
-            <span>אין משימות באיחור 🎉</span>
+            <span className="inline-flex items-center gap-1">
+              אין משימות באיחור <PartyPopper className="w-4 h-4" />
+            </span>
           )}
-          {" · "}
-          {pending.length} ממתינות בסך הכל
+          <span>·</span>
+          <span>{pending.length} ממתינות בסך הכל</span>
         </p>
       )}
 
       {tasks.length === 0 ? (
         <div className="text-center py-16 text-gray-400">
-          <p className="text-4xl mb-3">✅</p>
+          <CheckCircle2 className="w-10 h-10 mx-auto mb-3" />
           <p>אין משימות עדיין. הוסף את הראשונה!</p>
         </div>
       ) : (
@@ -244,6 +295,7 @@ export default function TasksPage() {
             <div className="space-y-2">
               {pending.map((t) => {
                 const due = t.dueDate ? dueDateLabel(t.dueDate) : null;
+                const DueIcon = due ? dueDateToneIcon[due.tone] : null;
                 return (
                   <div key={t.id} className={`bg-white border rounded-lg px-4 py-3 flex items-center gap-3 ${isOverdue(t) ? "border-red-300 bg-red-50" : ""}`}>
                     <input type="checkbox" checked={t.completed} onChange={() => toggle(t)} className="w-4 h-4 accent-purple-600 cursor-pointer shrink-0" title="סמן כהושלם" />
@@ -252,22 +304,29 @@ export default function TasksPage() {
                       <div className="flex gap-2 mt-1.5 flex-wrap items-center">
                         {t.contact && <ContactLink contactId={t.contact.id} name={t.contact.name} />}
                         {t.contact && <WhatsAppButton phone={t.contact.phone} />}
-                        {due && (
-                          <span className={`text-xs ${dueDateToneClass[due.tone]}`}>
-                            {dueDateToneIcon[due.tone]} {due.text}
+                        {t.contact?.phone && (
+                          <FollowUpButton
+                            onClick={() => setFollowUpContact({ id: t.contact!.id, name: t.contact!.name, phone: t.contact!.phone! })}
+                          />
+                        )}
+                        {due && DueIcon && (
+                          <span className={`text-xs inline-flex items-center gap-1 ${dueDateToneClass[due.tone]}`}>
+                            <DueIcon className="w-3.5 h-3.5" /> {due.text}
                           </span>
                         )}
                         {!t.dueDate && <span className="text-xs text-gray-300">ללא תאריך יעד</span>}
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
-                      <button onClick={() => openEdit(t)} className="text-gray-300 hover:text-blue-400 transition-colors text-base" title="ערוך משימה">✏️</button>
-                      <button onClick={() => remove(t.id)} className="text-gray-300 hover:text-red-400 transition-colors text-lg" title="מחק משימה">✕</button>
+                      <button onClick={() => openEdit(t)} className="text-gray-300 hover:text-blue-400 transition-colors p-1" title="ערוך משימה"><Pencil className="w-4 h-4" /></button>
+                      <button onClick={() => remove(t.id)} className="text-gray-300 hover:text-red-400 transition-colors p-1" title="מחק משימה"><X className="w-4 h-4" /></button>
                     </div>
                   </div>
                 );
               })}
-              {pending.length === 0 && <p className="text-sm text-gray-400 py-2">כל המשימות הושלמו! 🎉</p>}
+              {pending.length === 0 && (
+                <p className="text-sm text-gray-400 py-2 flex items-center gap-1">כל המשימות הושלמו! <PartyPopper className="w-4 h-4" /></p>
+              )}
             </div>
           </div>
 
@@ -283,7 +342,7 @@ export default function TasksPage() {
                       {t.contact && <ContactLink contactId={t.contact.id} name={t.contact.name} />}
                       {t.contact && <WhatsAppButton phone={t.contact.phone} />}
                     </div>
-                    <button onClick={() => remove(t.id)} className="text-gray-300 hover:text-red-400 transition-colors shrink-0" title="מחק משימה">✕</button>
+                    <button onClick={() => remove(t.id)} className="text-gray-300 hover:text-red-400 transition-colors shrink-0 p-1" title="מחק משימה"><X className="w-4 h-4" /></button>
                   </div>
                 ))}
               </div>
@@ -331,6 +390,27 @@ export default function TasksPage() {
             </div>
             <Button onClick={saveEdit} className="w-full">שמור שינויים</Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!followUpContact} onOpenChange={(o) => { if (!o) setFollowUpContact(null); }}>
+        <DialogContent className="max-w-sm" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>פולו אפ ל{followUpContact?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            {followUpContact && followUpTemplates(followUpContact.name).map((msg) => (
+              <button
+                key={msg}
+                disabled={sendingFollowUp}
+                onClick={() => sendFollowUp(msg)}
+                className="block w-full text-right text-sm px-4 py-3 rounded-lg border border-gray-200 hover:bg-green-50 hover:border-green-300 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {msg}
+              </button>
+            ))}
+          </div>
+          {sendingFollowUp && <p className="text-xs text-gray-400 text-center mt-2">שולח...</p>}
         </DialogContent>
       </Dialog>
     </div>
