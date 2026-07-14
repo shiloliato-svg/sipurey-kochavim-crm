@@ -42,6 +42,7 @@ type Contact = {
   whatsappSummary?: string;
   bookCount?: string;
   leadState?: string;
+  leadSource?: string;
   processStatus?: string;
   createdAt: string;
   _count?: { deals: number; tasks: number; activities: number };
@@ -243,9 +244,10 @@ export default function ContactsPage() {
       {(() => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
+        const isCampaign = (c: Contact) => c.leadSource === "קמפיין ממומן";
         const newToday = contacts.filter((c) => {
           const created = new Date(c.createdAt);
-          return created >= today && (c._count?.activities ?? 0) === 0;
+          return created >= today && ((c._count?.activities ?? 0) === 0 || isCampaign(c));
         });
         if (newToday.length === 0) return null;
         return (
@@ -257,7 +259,13 @@ export default function ContactsPage() {
             </div>
             <div className="mr-auto flex flex-wrap gap-1">
               {newToday.slice(0, 5).map((c) => (
-                <span key={c.id} className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">{c.name}</span>
+                <span
+                  key={c.id}
+                  className={`text-xs px-2 py-0.5 rounded-full ${isCampaign(c) ? "bg-purple-100 text-purple-700 font-semibold" : "bg-green-100 text-green-700"}`}
+                  title={isCampaign(c) ? "הגיע/ה מהקמפיין הממומן" : undefined}
+                >
+                  {isCampaign(c) && "קמפיין · "}{c.name}
+                </span>
               ))}
               {newToday.length > 5 && <span className="text-xs text-green-500">+{newToday.length - 5}</span>}
             </div>
