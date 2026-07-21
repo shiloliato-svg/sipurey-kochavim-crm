@@ -43,7 +43,6 @@ type Contact = {
   bookCount?: string;
   leadState?: string;
   leadSource?: string;
-  processStatus?: string;
   createdAt: string;
   _count?: { deals: number; tasks: number; activities: number };
   activities?: { note: string; createdAt: string; type: string }[];
@@ -55,8 +54,10 @@ const STATUSES = [
   { value: "חם", label: "🔥 חם", color: "bg-red-100 text-red-700" },
   { value: "פושר", label: "🌡️ פושר", color: "bg-yellow-100 text-yellow-700" },
   { value: "קר", label: "❄️ קר", color: "bg-blue-100 text-blue-700" },
+  { value: "ללא מענה", label: "📵 ללא מענה", color: "bg-orange-100 text-orange-700" },
   { value: "בטיפול", label: "⚙️ בטיפול", color: "bg-purple-100 text-purple-700" },
   { value: "סגור", label: "✅ סגור", color: "bg-green-100 text-green-700" },
+  { value: "לא רלוונטי", label: "🚫 לא רלוונטי", color: "bg-gray-100 text-gray-500" },
 ];
 
 const statusStyle = (s: string) =>
@@ -367,7 +368,6 @@ export default function ContactsPage() {
                 <TableHead className="text-right">שם</TableHead>
                 <TableHead className="text-right">טלפון</TableHead>
                 <TableHead className="text-right">משימה פתוחה</TableHead>
-                <TableHead className="text-right">שלב תהליך</TableHead>
                 <TableHead className="text-right">סטטוס</TableHead>
                 <TableHead className="text-right">כמה ספרים?</TableHead>
                 <TableHead></TableHead>
@@ -441,35 +441,6 @@ export default function ContactsPage() {
                         + משימה
                       </button>
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <Select
-                      value={c.processStatus ?? "חדש"}
-                      onValueChange={async (v) => {
-                        if (!v) return;
-                        await fetch(`/api/contacts/${c.id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ processStatus: v }) });
-                        load();
-                      }}
-                    >
-                      <SelectTrigger className={`text-xs h-7 font-semibold rounded-full border px-2 ${
-                        c.processStatus === "שולם" ? "bg-blue-50 text-blue-700 border-blue-200" :
-                        c.processStatus === "נשלח" ? "bg-purple-50 text-purple-700 border-purple-200" :
-                        c.processStatus === "מחכה לתשלום" ? "bg-orange-50 text-orange-700 border-orange-200" :
-                        c.processStatus === "בהכנה" ? "bg-yellow-50 text-yellow-700 border-yellow-200" :
-                        c.processStatus === "לא רלוונטי" ? "bg-gray-100 text-gray-500 border-gray-200" :
-                        c.processStatus === "ללא מענה" ? "bg-red-50 text-red-400 border-red-200" :
-                        c.processStatus === "מחכה לפרטים" ? "bg-cyan-50 text-cyan-700 border-cyan-200" :
-                        c.processStatus === "יצרנו קשר" ? "bg-green-50 text-green-700 border-green-200" :
-                        "bg-gray-100 text-gray-500 border-gray-200"
-                      }`}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {["חדש","יצרנו קשר","מחכה לפרטים","מחכה לתשלום","ללא מענה","בהכנה","נשלח","לא רלוונטי","שולם"].map((s) => (
-                          <SelectItem key={s} value={s}>{s}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
                   </TableCell>
                   <TableCell>
                     <Select value={c.status ?? "חדש"} onValueChange={(v) => v && updateStatus(c.id, v)}>
