@@ -50,6 +50,9 @@ model Task {
   completed Boolean   @default(false)
   createdAt DateTime  @default(now())
 
+  lastFollowUpAt      DateTime?
+  lastFollowUpMessage String?
+
   contactId Int?
   contact   Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
 

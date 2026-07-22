@@ -41,6 +41,8 @@ type Task = {
   contact?: { id: number; name: string; phone?: string | null };
   dealId?: number;
   deal?: { title: string };
+  lastFollowUpAt?: string;
+  lastFollowUpMessage?: string;
 };
 
 type Contact = { id: number; name: string };
@@ -49,6 +51,18 @@ const empty = { title: "", dueDate: "", contactId: "", dealId: "" };
 const emptyEdit = { title: "", dueDate: "", contactId: "" };
 
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+
+// יום עסקים הבא: דילוג על שישי (5) ושבת (6) - למשל חמישי -> ראשון
+function nextBusinessDay(from: Date, time?: { hours: number; minutes: number }): Date {
+  const d = new Date(from);
+  d.setDate(d.getDate() + 1);
+  while (d.getDay() === 5 || d.getDay() === 6) {
+    d.setDate(d.getDate() + 1);
+  }
+  if (time) d.setHours(time.hours, time.minutes, 0, 0);
+  else d.setHours(9, 0, 0, 0);
+  return d;
+}
 
 function dueDateLabel(dueDate: string): { text: string; tone: "overdue" | "today" | "soon" | "later" } {
   const today = startOfDay(new Date());
@@ -136,7 +150,7 @@ export default function TasksPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editForm, setEditForm] = useState(emptyEdit);
-  const [followUpContact, setFollowUpContact] = useState<{ id: number; name: string; phone: string } | null>(null);
+  const [followUpContact, setFollowUpContact] = useState<{ id: number; name: string; phone: string; taskId: number; dueDate?: string } | null>(null);
   const [sendingFollowUp, setSendingFollowUp] = useState(false);
 
   const load = async () => {
@@ -210,8 +224,25 @@ export default function TasksPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ contactId: followUpContact.id, phone: followUpContact.phone, message }),
     });
+
+    const existing = followUpContact.dueDate ? new Date(followUpContact.dueDate) : null;
+    const newDueDate = nextBusinessDay(
+      new Date(),
+      existing ? { hours: existing.getHours(), minutes: existing.getMinutes() } : undefined
+    );
+    await fetch(`/api/tasks/${followUpContact.taskId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        dueDate: newDueDate.toISOString(),
+        lastFollowUpAt: new Date().toISOString(),
+        lastFollowUpMessage: message,
+      }),
+    });
+
     setSendingFollowUp(false);
     setFollowUpContact(null);
+    load();
   };
 
   const isOverdue = (t: Task) => !t.completed && !!t.dueDate && startOfDay(new Date(t.dueDate)) < startOfDay(new Date());
@@ -306,7 +337,7 @@ export default function TasksPage() {
                         {t.contact && <WhatsAppButton phone={t.contact.phone} />}
                         {t.contact?.phone && (
                           <FollowUpButton
-                            onClick={() => setFollowUpContact({ id: t.contact!.id, name: t.contact!.name, phone: t.contact!.phone! })}
+                            onClick={() => setFollowUpContact({ id: t.contact!.id, name: t.contact!.name, phone: t.contact!.phone!, taskId: t.id, dueDate: t.dueDate })}
                           />
                         )}
                         {due && DueIcon && (
@@ -316,6 +347,15 @@ export default function TasksPage() {
                         )}
                         {!t.dueDate && <span className="text-xs text-gray-300">ללא תאריך יעד</span>}
                       </div>
+                      {t.lastFollowUpAt && (
+                        <p className="text-xs text-emerald-600 mt-1 flex items-center gap-1">
+                          <Send className="w-3 h-3 shrink-0" />
+                          <span>
+                            פולו אפ נשלח {new Date(t.lastFollowUpAt).toLocaleDateString("he-IL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                            {t.lastFollowUpMessage && ` - "${t.lastFollowUpMessage}"`}
+                          </span>
+                        </p>
+                      )}
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                       <button onClick={() => openEdit(t)} className="text-gray-300 hover:text-blue-400 transition-colors p-1" title="ערוך משימה"><Pencil className="w-4 h-4" /></button>
