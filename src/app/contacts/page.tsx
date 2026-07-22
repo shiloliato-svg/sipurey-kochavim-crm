@@ -90,6 +90,7 @@ export default function ContactsPage() {
   const [taskForm, setTaskForm] = useState(emptyTask);
   const [savingTask, setSavingTask] = useState(false);
   const [followUpContact, setFollowUpContact] = useState<Contact | null>(null);
+  const [sendingFollowUp, setSendingFollowUp] = useState(false);
   const [editingTask, setEditingTask] = useState<{ id: number; title: string; dueDate?: string } | null>(null);
   const [editTaskForm, setEditTaskForm] = useState(emptyEditTask);
   const [savingEditTask, setSavingEditTask] = useState(false);
@@ -205,6 +206,19 @@ export default function ContactsPage() {
     });
     setSavingEditTask(false);
     setEditingTask(null);
+    load();
+  };
+
+  const sendFollowUp = async (message: string) => {
+    if (!followUpContact?.phone) return;
+    setSendingFollowUp(true);
+    await fetch("/api/whatsapp/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contactId: followUpContact.id, phone: followUpContact.phone, message }),
+    });
+    setSendingFollowUp(false);
+    setFollowUpContact(null);
     load();
   };
 
@@ -504,18 +518,17 @@ export default function ContactsPage() {
               `היי ${followUpContact?.name ?? ""}, ניסינו לתפוס אותך ללא מענה :)`,
               `היי ${followUpContact?.name ?? ""}, איך מתקדם? רציתי לשמוע ממך :)`,
             ].map((msg) => (
-              <a
+              <button
                 key={msg}
-                href={`https://wa.me/${followUpContact?.phone ? toWhatsAppNumber(followUpContact.phone) : ""}?text=${encodeURIComponent(msg)}`}
-                target="_blank"
-                rel="noreferrer"
-                onClick={() => setFollowUpContact(null)}
-                className="block w-full text-right text-sm px-4 py-3 rounded-lg border border-gray-200 hover:bg-green-50 hover:border-green-300 transition-colors cursor-pointer"
+                disabled={sendingFollowUp}
+                onClick={() => sendFollowUp(msg)}
+                className="block w-full text-right text-sm px-4 py-3 rounded-lg border border-gray-200 hover:bg-green-50 hover:border-green-300 transition-colors cursor-pointer disabled:opacity-50"
               >
                 {msg}
-              </a>
+              </button>
             ))}
           </div>
+          {sendingFollowUp && <p className="text-xs text-gray-400 text-center mt-2">שולח...</p>}
         </DialogContent>
       </Dialog>
 
