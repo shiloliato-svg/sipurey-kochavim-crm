@@ -19,6 +19,8 @@ type Task = {
   title: string;
   dueDate?: string;
   completed: boolean;
+  lastFollowUpAt?: string;
+  lastFollowUpMessage?: string;
 };
 
 type Contact = {
@@ -359,29 +361,37 @@ export default function ContactDetailPage() {
 
         <div className="space-y-2">
           {pendingTasks.map((task) => (
-            <div key={task.id} className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-50 group">
-              <input
-                type="checkbox"
-                checked={task.completed}
-                onChange={() => toggleTask(task)}
-                className="w-4 h-4 accent-purple-600 cursor-pointer"
-              />
-              <span className="text-sm flex-1">{task.title}</span>
-              {task.dueDate && (
-                <span className={`text-xs px-2 py-0.5 rounded-full ${
-                  new Date(task.dueDate) < new Date()
-                    ? "bg-red-100 text-red-600"
-                    : "bg-blue-50 text-blue-600"
-                }`}>
-                  🕐 {new Date(task.dueDate).toLocaleString("he-IL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
-                </span>
+            <div key={task.id} className="p-2 rounded-lg hover:bg-gray-50 group">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={task.completed}
+                  onChange={() => toggleTask(task)}
+                  className="w-4 h-4 accent-purple-600 cursor-pointer"
+                />
+                <span className="text-sm flex-1">{task.title}</span>
+                {task.dueDate && (
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${
+                    new Date(task.dueDate) < new Date()
+                      ? "bg-red-100 text-red-600"
+                      : "bg-blue-50 text-blue-600"
+                  }`}>
+                    🕐 {new Date(task.dueDate).toLocaleString("he-IL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                )}
+                <button
+                  onClick={() => deleteTask(task.id)}
+                  className="text-gray-300 hover:text-red-400 opacity-0 group-hover:opacity-100 text-xs"
+                >
+                  ✕
+                </button>
+              </div>
+              {task.lastFollowUpAt && (
+                <p className="text-xs text-emerald-600 mt-1 mr-6">
+                  פולו אפ נשלח {new Date(task.lastFollowUpAt).toLocaleDateString("he-IL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                  {task.lastFollowUpMessage && ` - "${task.lastFollowUpMessage}"`}
+                </p>
               )}
-              <button
-                onClick={() => deleteTask(task.id)}
-                className="text-gray-300 hover:text-red-400 opacity-0 group-hover:opacity-100 text-xs"
-              >
-                ✕
-              </button>
             </div>
           ))}
           {doneTasks.map((task) => (
