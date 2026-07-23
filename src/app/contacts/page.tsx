@@ -230,7 +230,14 @@ export default function ContactsPage() {
       body: JSON.stringify({ contactId: followUpContact.id, phone: followUpContact.phone, message }),
     });
 
-    const openTask = followUpContact.tasks?.[0];
+    let openTask = followUpContact.tasks?.[0];
+    if (!openTask) {
+      openTask = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "פולו אפ ללקוח", contactId: followUpContact.id }),
+      }).then((r) => r.json());
+    }
     if (openTask) {
       const existing = openTask.dueDate ? new Date(openTask.dueDate) : null;
       const newDueDate = nextBusinessDay(
