@@ -57,7 +57,7 @@ const STATUSES = [
   { value: "ללא מענה", label: "📵 ללא מענה", color: "bg-orange-100 text-orange-700" },
   { value: "בטיפול", label: "⚙️ בטיפול", color: "bg-purple-100 text-purple-700" },
   { value: "סגור", label: "✅ סגור", color: "bg-green-100 text-green-700" },
-  { value: "לא רלוונטי", label: "🚫 לא רלוונטי", color: "bg-gray-100 text-gray-500" },
+  { value: "לא רלוונטי", label: "🚫 לא רלוונטי", color: "bg-red-100 text-red-700" },
 ];
 
 const statusStyle = (s: string) =>
