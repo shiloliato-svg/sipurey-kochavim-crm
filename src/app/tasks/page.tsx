@@ -260,7 +260,7 @@ export default function TasksPage() {
   const overdueCount = pending.filter(isOverdue).length;
 
   return (
-    <div className="relative left-1/2 right-1/2 -mx-[50vw] w-screen px-4 sm:px-6 lg:px-8">
+    <div>
       <div className="flex items-center justify-between mb-2">
         <h1 className="text-2xl font-bold">משימות</h1>
         <Dialog open={open} onOpenChange={setOpen}>

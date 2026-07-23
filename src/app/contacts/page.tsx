@@ -254,7 +254,7 @@ export default function ContactsPage() {
   };
 
   return (
-    <div className="relative left-1/2 right-1/2 -mx-[50vw] w-screen px-4 sm:px-6 lg:px-8">
+    <div>
       {/* Quick task dialog */}
       <Dialog open={!!taskDialogContact} onOpenChange={(o) => { if (!o) setTaskDialogContact(null); }}>
         <DialogContent className="max-w-sm" dir="rtl">
