@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const tasks = await prisma.task.findMany({
     orderBy: [{ completed: "asc" }, { dueDate: "asc" }],
-    include: { contact: { select: { id: true, name: true, phone: true } }, deal: { select: { title: true } } },
+    include: { contact: { select: { id: true, name: true, phone: true, lastFollowUpAt: true, lastFollowUpMessage: true } }, deal: { select: { title: true } } },
   });
   return NextResponse.json(tasks);
 }
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
       ...(contactId ? { contactId: Number(contactId) } : {}),
       ...(dealId ? { dealId: Number(dealId) } : {}),
     },
-    include: { contact: { select: { id: true, name: true, phone: true } }, deal: { select: { title: true } } },
+    include: { contact: { select: { id: true, name: true, phone: true, lastFollowUpAt: true, lastFollowUpMessage: true } }, deal: { select: { title: true } } },
   });
   return NextResponse.json(task, { status: 201 });
 }

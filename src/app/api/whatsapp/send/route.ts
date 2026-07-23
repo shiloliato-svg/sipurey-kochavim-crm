@@ -36,6 +36,10 @@ export async function POST(req: NextRequest) {
     await prisma.activity.create({
       data: { type: "whatsapp", note: cleanMessage, contactId: Number(contactId) },
     });
+    await prisma.contact.update({
+      where: { id: Number(contactId) },
+      data: { lastFollowUpAt: new Date(), lastFollowUpMessage: cleanMessage },
+    });
   }
 
   return NextResponse.json({ ok: true });

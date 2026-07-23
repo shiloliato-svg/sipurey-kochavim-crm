@@ -19,8 +19,6 @@ type Task = {
   title: string;
   dueDate?: string;
   completed: boolean;
-  lastFollowUpAt?: string;
-  lastFollowUpMessage?: string;
 };
 
 type Contact = {
@@ -36,6 +34,8 @@ type Contact = {
   processStatus: string;
   productInterest?: string;
   createdAt: string;
+  lastFollowUpAt?: string;
+  lastFollowUpMessage?: string;
   tasks: Task[];
   activities: { id: number; note: string; createdAt: string; type: string }[];
 };
@@ -359,6 +359,13 @@ export default function ContactDetailPage() {
           <p className="text-sm text-gray-400 italic">אין משימות עדיין.</p>
         )}
 
+        {contact.lastFollowUpAt && (
+          <p className="text-xs text-emerald-600 mb-2">
+            פולו אפ נשלח {new Date(contact.lastFollowUpAt).toLocaleDateString("he-IL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+            {contact.lastFollowUpMessage && ` - "${contact.lastFollowUpMessage}"`}
+          </p>
+        )}
+
         <div className="space-y-2">
           {pendingTasks.map((task) => (
             <div key={task.id} className="p-2 rounded-lg hover:bg-gray-50 group">
@@ -386,12 +393,6 @@ export default function ContactDetailPage() {
                   ✕
                 </button>
               </div>
-              {task.lastFollowUpAt && (
-                <p className="text-xs text-emerald-600 mt-1 mr-6">
-                  פולו אפ נשלח {new Date(task.lastFollowUpAt).toLocaleDateString("he-IL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
-                  {task.lastFollowUpMessage && ` - "${task.lastFollowUpMessage}"`}
-                </p>
-              )}
             </div>
           ))}
           {doneTasks.map((task) => (

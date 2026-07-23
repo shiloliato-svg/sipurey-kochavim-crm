@@ -23,7 +23,7 @@ export async function GET() {
         where: { completed: false },
         orderBy: { dueDate: "asc" },
         take: 1,
-        select: { id: true, title: true, dueDate: true, lastFollowUpAt: true, lastFollowUpMessage: true },
+        select: { id: true, title: true, dueDate: true },
       },
     },
   });

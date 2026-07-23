@@ -38,11 +38,9 @@ type Task = {
   dueDate?: string;
   completed: boolean;
   contactId?: number;
-  contact?: { id: number; name: string; phone?: string | null };
+  contact?: { id: number; name: string; phone?: string | null; lastFollowUpAt?: string; lastFollowUpMessage?: string };
   dealId?: number;
   deal?: { title: string };
-  lastFollowUpAt?: string;
-  lastFollowUpMessage?: string;
 };
 
 type Contact = { id: number; name: string };
@@ -233,11 +231,7 @@ export default function TasksPage() {
     await fetch(`/api/tasks/${followUpContact.taskId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        dueDate: newDueDate.toISOString(),
-        lastFollowUpAt: new Date().toISOString(),
-        lastFollowUpMessage: message,
-      }),
+      body: JSON.stringify({ dueDate: newDueDate.toISOString() }),
     });
 
     setSendingFollowUp(false);
@@ -347,12 +341,12 @@ export default function TasksPage() {
                         )}
                         {!t.dueDate && <span className="text-xs text-gray-300">ללא תאריך יעד</span>}
                       </div>
-                      {t.lastFollowUpAt && (
+                      {t.contact?.lastFollowUpAt && (
                         <p className="text-xs text-emerald-600 mt-1 flex items-center gap-1">
                           <Send className="w-3 h-3 shrink-0" />
                           <span>
-                            פולו אפ נשלח {new Date(t.lastFollowUpAt).toLocaleDateString("he-IL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
-                            {t.lastFollowUpMessage && ` - "${t.lastFollowUpMessage}"`}
+                            פולו אפ נשלח {new Date(t.contact.lastFollowUpAt).toLocaleDateString("he-IL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                            {t.contact.lastFollowUpMessage && ` - "${t.contact.lastFollowUpMessage}"`}
                           </span>
                         </p>
                       )}

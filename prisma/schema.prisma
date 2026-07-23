@@ -23,6 +23,9 @@ model Contact {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
+  lastFollowUpAt      DateTime?
+  lastFollowUpMessage String?
+
   deals      Deal[]
   tasks      Task[]
   activities Activity[]
