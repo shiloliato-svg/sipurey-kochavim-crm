@@ -77,6 +77,18 @@ const toWhatsAppNumber = (phone: string) => {
   return "972" + digits;
 };
 
+// יום עסקים הבא: דילוג על שישי (5) ושבת (6) - למשל חמישי -> ראשון
+function nextBusinessDay(from: Date, time?: { hours: number; minutes: number }): Date {
+  const d = new Date(from);
+  d.setDate(d.getDate() + 1);
+  while (d.getDay() === 5 || d.getDay() === 6) {
+    d.setDate(d.getDate() + 1);
+  }
+  if (time) d.setHours(time.hours, time.minutes, 0, 0);
+  else d.setHours(9, 0, 0, 0);
+  return d;
+}
+
 export default function ContactsPage() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [search, setSearch] = useState("");
@@ -217,6 +229,25 @@ export default function ContactsPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ contactId: followUpContact.id, phone: followUpContact.phone, message }),
     });
+
+    const openTask = followUpContact.tasks?.[0];
+    if (openTask) {
+      const existing = openTask.dueDate ? new Date(openTask.dueDate) : null;
+      const newDueDate = nextBusinessDay(
+        new Date(),
+        existing ? { hours: existing.getHours(), minutes: existing.getMinutes() } : undefined
+      );
+      await fetch(`/api/tasks/${openTask.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dueDate: newDueDate.toISOString(),
+          lastFollowUpAt: new Date().toISOString(),
+          lastFollowUpMessage: message,
+        }),
+      });
+    }
+
     setSendingFollowUp(false);
     setFollowUpContact(null);
     load();
