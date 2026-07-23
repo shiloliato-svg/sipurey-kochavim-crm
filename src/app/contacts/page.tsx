@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { Pencil } from "lucide-react";
+import { Pencil, Send } from "lucide-react";
 
 type Contact = {
   id: number;
@@ -46,7 +46,7 @@ type Contact = {
   createdAt: string;
   _count?: { deals: number; tasks: number; activities: number };
   activities?: { note: string; createdAt: string; type: string }[];
-  tasks?: { id: number; title: string; dueDate?: string }[];
+  tasks?: { id: number; title: string; dueDate?: string; lastFollowUpAt?: string; lastFollowUpMessage?: string }[];
 };
 
 const STATUSES = [
@@ -442,6 +442,15 @@ export default function ContactsPage() {
                           {c.tasks[0].dueDate && (
                             <span className={`text-xs ${new Date(c.tasks[0].dueDate) < new Date() ? "text-red-500" : "text-gray-400"}`}>
                               {new Date(c.tasks[0].dueDate).toLocaleDateString("he-IL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                          )}
+                          {c.tasks[0].lastFollowUpAt && (
+                            <span className="text-xs text-emerald-600 flex items-center gap-1">
+                              <Send className="w-3 h-3 shrink-0" />
+                              <span>
+                                פולו אפ נשלח {new Date(c.tasks[0].lastFollowUpAt).toLocaleDateString("he-IL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                                {c.tasks[0].lastFollowUpMessage && ` - "${c.tasks[0].lastFollowUpMessage}"`}
+                              </span>
                             </span>
                           )}
                         </div>
