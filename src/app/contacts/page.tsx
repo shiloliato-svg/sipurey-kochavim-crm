@@ -447,7 +447,7 @@ export default function ContactsPage() {
                       "—"
                     )}
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="whitespace-normal max-w-xs">
                     <div className="flex flex-col gap-1">
                       {c.tasks?.[0] ? (
                         <div className="flex flex-col gap-0.5">
@@ -528,7 +528,7 @@ export default function ContactsPage() {
                       ))}
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="whitespace-normal max-w-[180px]">
                     <div className="flex gap-2 justify-end flex-wrap">
                       {c.phone && (
                         <Button size="sm" variant="outline" className="text-green-700 border-green-300 hover:bg-green-50" onClick={() => setFollowUpContact(c)}>
