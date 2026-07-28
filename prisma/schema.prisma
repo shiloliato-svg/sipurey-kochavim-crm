@@ -26,6 +26,9 @@ model Contact {
   lastFollowUpAt      DateTime?
   lastFollowUpMessage String?
 
+  closedAt            DateTime?
+  feedbackRequestedAt DateTime?
+
   deals      Deal[]
   tasks      Task[]
   activities Activity[]
