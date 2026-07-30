@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
 
     if (ok) {
       await prisma.activity.create({
-        data: { type: "whatsapp", note: cleanMessage, contactId: contact.id },
+        data: { type: "followup", note: cleanMessage, contactId: contact.id },
       });
       await prisma.contact.update({
         where: { id: contact.id },

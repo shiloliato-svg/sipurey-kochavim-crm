@@ -24,6 +24,7 @@ import {
   Calendar,
   CheckCircle2,
   Flame,
+  History,
   MessageCircle,
   Pencil,
   PartyPopper,
@@ -119,6 +120,18 @@ function FollowUpButton({ onClick }: { onClick: () => void }) {
   );
 }
 
+function HistoryButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); onClick(); }}
+      className="text-xs inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors"
+      title="היסטוריית פולו אפים"
+    >
+      <History className="w-3.5 h-3.5" /> היסטוריה
+    </button>
+  );
+}
+
 function ContactLink({ contactId, name }: { contactId: number; name: string }) {
   return (
     <span
@@ -150,6 +163,9 @@ export default function TasksPage() {
   const [editForm, setEditForm] = useState(emptyEdit);
   const [followUpContact, setFollowUpContact] = useState<{ id: number; name: string; phone: string; taskId: number; dueDate?: string } | null>(null);
   const [sendingFollowUp, setSendingFollowUp] = useState(false);
+  const [historyContact, setHistoryContact] = useState<{ id: number; name: string } | null>(null);
+  const [historyItems, setHistoryItems] = useState<{ note: string; createdAt: string }[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   const load = async () => {
     const [t, c] = await Promise.all([
@@ -237,6 +253,17 @@ export default function TasksPage() {
     setSendingFollowUp(false);
     setFollowUpContact(null);
     load();
+  };
+
+  const openHistory = async (contactId: number, name: string) => {
+    setHistoryContact({ id: contactId, name });
+    setLoadingHistory(true);
+    const contact = await fetch(`/api/contacts/${contactId}`).then((r) => r.json());
+    const items = (contact.activities ?? [])
+      .filter((a: { type: string }) => a.type === "followup")
+      .map((a: { note: string; createdAt: string }) => ({ note: a.note, createdAt: a.createdAt }));
+    setHistoryItems(items);
+    setLoadingHistory(false);
   };
 
   const isOverdue = (t: Task) => !t.completed && !!t.dueDate && startOfDay(new Date(t.dueDate)) < startOfDay(new Date());
@@ -333,6 +360,9 @@ export default function TasksPage() {
                           <FollowUpButton
                             onClick={() => setFollowUpContact({ id: t.contact!.id, name: t.contact!.name, phone: t.contact!.phone!, taskId: t.id, dueDate: t.dueDate })}
                           />
+                        )}
+                        {t.contact && (
+                          <HistoryButton onClick={() => openHistory(t.contact!.id, t.contact!.name)} />
                         )}
                         {due && DueIcon && (
                           <span className={`text-xs inline-flex items-center gap-1 ${dueDateToneClass[due.tone]}`}>
@@ -445,6 +475,30 @@ export default function TasksPage() {
             ))}
           </div>
           {sendingFollowUp && <p className="text-xs text-gray-400 text-center mt-2">שולח...</p>}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!historyContact} onOpenChange={(o) => { if (!o) setHistoryContact(null); }}>
+        <DialogContent className="max-w-sm" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>היסטוריית פולו אפים - {historyContact?.name}</DialogTitle>
+          </DialogHeader>
+          {loadingHistory ? (
+            <p className="text-sm text-gray-400 text-center py-4">טוען...</p>
+          ) : historyItems.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-4">עדיין לא נשלחו פולו אפים ללקוח הזה.</p>
+          ) : (
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {historyItems.map((item, i) => (
+                <div key={i} className="text-sm border border-gray-200 rounded-lg px-3 py-2">
+                  <p className="text-xs text-gray-400 mb-1">
+                    {new Date(item.createdAt).toLocaleDateString("he-IL", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                  </p>
+                  <p>{item.note}</p>
+                </div>
+              ))}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
