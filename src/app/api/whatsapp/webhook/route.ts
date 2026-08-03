@@ -26,6 +26,39 @@ async function isRateLimited(contactId: number): Promise<boolean> {
   return recentCount > RATE_LIMIT_MAX_CALLS;
 }
 
+async function detectNotRelevant(followUpMessage: string, reply: string): Promise<boolean> {
+  try {
+    const response = await anthropic.messages.create({
+      model: "claude-haiku-4-5",
+      max_tokens: 5,
+      messages: [
+        {
+          role: "user",
+          content: `שלחנו ללקוח את הודעת ה-follow-up (תזכורת) הבאה, וזו התגובה המיידית שלו לה. בהתחשב בהקשר של מה שנשלח — האם הלקוח אומר שהוא לא מעוניין בכלל/לא רלוונטי לו/מוותר על ההצעה כולה — להבדיל מסירוב לפרט קטן בתוך הזמנה שהוא כן ממשיך איתה (למשל "לא צריך גרביים")? השב אך ורק "כן" או "לא".
+
+הודעת ה-follow-up שנשלחה:
+${followUpMessage || "(לא ידוע)"}
+
+תגובת הלקוח:
+${reply}`,
+        },
+      ],
+    });
+    const result = (response.content[0] as { text: string }).text.trim();
+    return result.startsWith("כן");
+  } catch {
+    return false;
+  }
+}
+
+async function handleNotRelevantReply(contactId: number): Promise<void> {
+  await prisma.task.deleteMany({ where: { contactId } });
+  await prisma.contact.update({
+    where: { id: contactId },
+    data: { status: "לא רלוונטי", lastFollowUpAt: null, lastFollowUpMessage: null },
+  });
+}
+
 async function detectBookCount(contactId: number): Promise<void> {
   const contact = await prisma.contact.findUnique({
     where: { id: contactId },
@@ -142,6 +175,25 @@ export async function POST(req: NextRequest) {
 
   // Analyze book count in background (non-blocking)
   detectBookCount(contact.id).catch(() => {});
+
+  // רק אם זו ההודעה הראשונה שמגיעה מהלקוח מאז שנשלח לו follow-up (לא כל הודעה עתידית
+  // כלשהי) — בודקים אם התגובה מביעה חוסר עניין כללי, ומנקים את הדגל בכל מקרה כדי
+  // שלא יישאר תקוע ויתפוס בטעות הודעה לא-קשורה בהמשך אותה שיחה.
+  if (contact.lastFollowUpAt && message) {
+    const followUpMessage = contact.lastFollowUpMessage ?? "";
+    detectNotRelevant(followUpMessage, message)
+      .then(async (isNotRelevant) => {
+        if (isNotRelevant) {
+          await handleNotRelevantReply(contact.id);
+          return;
+        }
+        await prisma.contact.update({
+          where: { id: contact.id },
+          data: { lastFollowUpAt: null, lastFollowUpMessage: null },
+        });
+      })
+      .catch(() => {});
+  }
 
   return NextResponse.json({ ok: true });
 }
