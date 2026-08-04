@@ -179,20 +179,23 @@ export async function POST(req: NextRequest) {
   // רק אם זו ההודעה הראשונה שמגיעה מהלקוח מאז שנשלח לו follow-up (לא כל הודעה עתידית
   // כלשהי) — בודקים אם התגובה מביעה חוסר עניין כללי, ומנקים את הדגל בכל מקרה כדי
   // שלא יישאר תקוע ויתפוס בטעות הודעה לא-קשורה בהמשך אותה שיחה.
+  // ממתינים לזה (לא fire-and-forget) כי הפונקציה הסרברלס נהרגת מיד אחרי החזרת
+  // התשובה, ופרומיס תלוי בלי await נקטע לפני שהוא מספיק להשלים.
   if (contact.lastFollowUpAt && message) {
-    const followUpMessage = contact.lastFollowUpMessage ?? "";
-    detectNotRelevant(followUpMessage, message)
-      .then(async (isNotRelevant) => {
-        if (isNotRelevant) {
-          await handleNotRelevantReply(contact.id);
-          return;
-        }
+    try {
+      const followUpMessage = contact.lastFollowUpMessage ?? "";
+      const isNotRelevant = await detectNotRelevant(followUpMessage, message);
+      if (isNotRelevant) {
+        await handleNotRelevantReply(contact.id);
+      } else {
         await prisma.contact.update({
           where: { id: contact.id },
           data: { lastFollowUpAt: null, lastFollowUpMessage: null },
         });
-      })
-      .catch(() => {});
+      }
+    } catch {
+      // silent fail
+    }
   }
 
   return NextResponse.json({ ok: true });
