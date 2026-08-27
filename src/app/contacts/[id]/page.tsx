@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { CallDialog, useCallDialog } from "@/components/call-dialog";
 import {
   Select,
   SelectContent,
@@ -85,6 +86,7 @@ export default function ContactDetailPage() {
   const [summarizing, setSummarizing] = useState(false);
   const [newTask, setNewTask] = useState({ title: "", dueDate: "" });
   const [addingTask, setAddingTask] = useState(false);
+  const { target: callTarget, setTarget: setCallTarget } = useCallDialog();
 
   const toWhatsAppNumber = (phone: string) => {
     const digits = phone.replace(/\D/g, "");
@@ -217,11 +219,14 @@ export default function ContactDetailPage() {
             </a>
           )}
           {contact.phone && (
-            <a href={`tel:+${toWhatsAppNumber(contact.phone)}`}>
-              <Button size="sm" variant="outline" className="text-blue-600 border-blue-300 hover:bg-blue-50 gap-1">
-                ☎️ התקשר
-              </Button>
-            </a>
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-blue-600 border-blue-300 hover:bg-blue-50 gap-1"
+              onClick={() => setCallTarget({ contactId: contact.id, name: contact.name, phone: contact.phone! })}
+            >
+              ☎️ התקשר
+            </Button>
           )}
           {contact.email && (
             <a href={`mailto:${contact.email}`}>
@@ -422,6 +427,7 @@ export default function ContactDetailPage() {
         </div>
       </div>
 
+      <CallDialog target={callTarget} onClose={() => setCallTarget(null)} />
     </div>
   );
 }

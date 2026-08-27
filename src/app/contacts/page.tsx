@@ -30,6 +30,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Pencil, Phone, Send } from "lucide-react";
+import { CallDialog, useCallDialog } from "@/components/call-dialog";
 
 type Contact = {
   id: number;
@@ -108,6 +109,7 @@ export default function ContactsPage() {
   const [editingTask, setEditingTask] = useState<{ id: number; title: string; dueDate?: string } | null>(null);
   const [editTaskForm, setEditTaskForm] = useState(emptyEditTask);
   const [savingEditTask, setSavingEditTask] = useState(false);
+  const { target: callTarget, setTarget: setCallTarget } = useCallDialog();
 
   const load = async () => {
     const res = await fetch("/api/contacts");
@@ -440,13 +442,13 @@ export default function ContactsPage() {
                         >
                           💬
                         </a>
-                        <a
-                          href={`tel:+${toWhatsAppNumber(c.phone)}`}
+                        <button
+                          onClick={() => setCallTarget({ contactId: c.id, name: c.name, phone: c.phone! })}
                           title="התקשר ללקוח"
                           className="text-blue-600 hover:text-blue-700"
                         >
                           <Phone className="w-4 h-4" />
-                        </a>
+                        </button>
                       </div>
                     ) : (
                       "—"
@@ -607,6 +609,8 @@ export default function ContactsPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <CallDialog target={callTarget} onClose={() => setCallTarget(null)} />
     </div>
   );
 }
