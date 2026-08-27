@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { Pencil, Send } from "lucide-react";
+import { Pencil, Phone, Send } from "lucide-react";
 
 type Contact = {
   id: number;
@@ -439,6 +439,13 @@ export default function ContactsPage() {
                           className="text-green-600 hover:text-green-700"
                         >
                           💬
+                        </a>
+                        <a
+                          href={`tel:+${toWhatsAppNumber(c.phone)}`}
+                          title="התקשר ללקוח"
+                          className="text-blue-600 hover:text-blue-700"
+                        >
+                          <Phone className="w-4 h-4" />
                         </a>
                       </div>
                     ) : (

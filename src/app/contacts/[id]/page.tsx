@@ -216,6 +216,13 @@ export default function ContactDetailPage() {
               </Button>
             </a>
           )}
+          {contact.phone && (
+            <a href={`tel:+${toWhatsAppNumber(contact.phone)}`}>
+              <Button size="sm" variant="outline" className="text-blue-600 border-blue-300 hover:bg-blue-50 gap-1">
+                ☎️ התקשר
+              </Button>
+            </a>
+          )}
           {contact.email && (
             <a href={`mailto:${contact.email}`}>
               <Button size="sm" variant="outline" className="gap-1">✉️ מייל</Button>
