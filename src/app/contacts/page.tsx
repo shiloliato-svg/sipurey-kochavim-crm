@@ -425,6 +425,7 @@ export default function ContactsPage() {
                     <Link href={`/contacts/${c.id}`} className="font-medium hover:text-purple-700 hover:underline block">
                       {c.name}
                     </Link>
+                    {c.company && <span className="text-xs text-gray-500 block">{c.company}</span>}
                     <span className="text-xs text-gray-400">
                       {new Date(c.createdAt).toLocaleDateString("he-IL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
                     </span>
