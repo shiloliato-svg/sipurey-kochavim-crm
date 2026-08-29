@@ -59,6 +59,33 @@ async function handleNotRelevantReply(contactId: number): Promise<void> {
   });
 }
 
+async function detectBusinessName(rawName: string): Promise<{ name: string; company: string | null }> {
+  try {
+    const response = await anthropic.messages.create({
+      model: "claude-haiku-4-5",
+      max_tokens: 40,
+      messages: [
+        {
+          role: "user",
+          content: `זהו שם תצוגה גולמי מוואטסאפ, שלפעמים מכיל שם אישי בלבד, ולפעמים שם אישי מעורבב עם שם עסק/חברה (למשל "שימרית Fitness Food Israel" או "Master Yigal Arbiv | IKMA Israel Krav Maga"). אם יש שם עסק בתוך זה, השב בדיוק בפורמט: שם_אישי|||שם_העסק (רק השם האישי, אחר כך שלושה פייפים, אחר כך רק שם העסק). אם זה רק שם אישי בלי שם עסק, או שאי אפשר להבדיל, השב אך ורק במילה: NONE
+
+שם התצוגה:
+${rawName}`,
+        },
+      ],
+    });
+    const result = (response.content[0] as { text: string }).text.trim();
+    if (result === "NONE" || !result.includes("|||")) {
+      return { name: rawName, company: null };
+    }
+    const [personName, companyName] = result.split("|||").map((s) => s.trim());
+    if (!personName || !companyName) return { name: rawName, company: null };
+    return { name: personName, company: companyName };
+  } catch {
+    return { name: rawName, company: null };
+  }
+}
+
 async function detectBookCount(contactId: number): Promise<void> {
   const contact = await prisma.contact.findUnique({
     where: { id: contactId },
@@ -145,11 +172,13 @@ export async function POST(req: NextRequest) {
   let contact = await prisma.contact.findFirst({ where: { phone } });
 
   if (!contact) {
+    const { name: cleanName, company } = await detectBusinessName(name);
     contact = await prisma.contact.create({
       data: {
-        name,
+        name: cleanName,
         phone,
         notes: "נוסף אוטומטית מוואטספ",
+        ...(company ? { company } : {}),
         ...(leadSource ? { leadSource } : {}),
       },
     });
