@@ -86,6 +86,48 @@ ${rawName}`,
   }
 }
 
+async function detectBusinessNameFromConversation(contactId: number): Promise<void> {
+  const contact = await prisma.contact.findUnique({
+    where: { id: contactId },
+    include: {
+      activities: {
+        where: { type: "whatsapp" },
+        orderBy: { createdAt: "asc" },
+      },
+    },
+  });
+
+  if (!contact || contact.company || contact.activities.length === 0) return;
+
+  const conversation = contact.activities.map((a) => a.note).join("\n");
+
+  try {
+    const response = await anthropic.messages.create({
+      model: "claude-haiku-4-5",
+      max_tokens: 20,
+      messages: [
+        {
+          role: "user",
+          content: `זו שיחת וואטסאפ עם לקוח. הבוט שלנו שואל את הלקוח בשלב מסוים מה שם העסק שלו. מתוך השיחה עד כה, האם הלקוח כבר ענה עם שם עסק/חברה? אם כן, השב אך ורק עם שם העסק עצמו (בלי מילים נוספות, בלי סימני פיסוק מיותרים). אם הלקוח עדיין לא ענה על זה או שלא ברור, השב אך ורק: NONE
+
+שיחה:
+${conversation}`,
+        },
+      ],
+    });
+
+    const result = (response.content[0] as { text: string }).text.trim();
+    if (result && result !== "NONE" && result.length < 100) {
+      await prisma.contact.update({
+        where: { id: contactId },
+        data: { company: result },
+      });
+    }
+  } catch {
+    // silent fail
+  }
+}
+
 async function detectBookCount(contactId: number): Promise<void> {
   const contact = await prisma.contact.findUnique({
     where: { id: contactId },
@@ -204,6 +246,14 @@ export async function POST(req: NextRequest) {
 
   // Analyze book count in background (non-blocking)
   detectBookCount(contact.id).catch(() => {});
+
+  // בודקים אם הלקוח ענה עם שם העסק שלו (בתגובה לשאלת הבוט) - ממתינים לזה כי
+  // פרומיס תלוי בלי await נקטע כשהפונקציה הסרברלס נהרגת מיד אחרי החזרת התשובה.
+  try {
+    await detectBusinessNameFromConversation(contact.id);
+  } catch {
+    // silent fail
+  }
 
   // רק אם זו ההודעה הראשונה שמגיעה מהלקוח מאז שנשלח לו follow-up (לא כל הודעה עתידית
   // כלשהי) — בודקים אם התגובה מביעה חוסר עניין כללי, ומנקים את הדגל בכל מקרה כדי
